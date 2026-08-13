@@ -2,8 +2,12 @@
 """Ingest sent e-mail as corpus material.
 
 Reads Google Takeout archives (corpus/inbox/*.zip containing
-Takeout/Mail/Sent.mbox) or bare .mbox files dropped in corpus/inbox/. A Sent
-mailbox contains only messages the user wrote, so authorship is structural.
+Takeout/Mail/Sent.mbox) or bare .mbox files dropped in corpus/inbox/.
+
+Authorship is enforced, not assumed: a "Sent" export can contain whole
+conversation threads (measured: 45% of one real export was other people's
+messages). The dominant From address across the mailbox is taken as the
+owner's and only messages From that address are kept.
 
 Per message: prefer the text/plain part (fall back to stripped HTML), remove
 quoted reply chains ("On ... wrote:", lines starting with >), signatures
@@ -28,8 +32,10 @@ INBOX = CORPUS / "inbox"
 EXTRACT = INBOX / "extracted"
 
 QUOTE_INTRO_RE = re.compile(
-    r"(?im)^\s*(on .{5,80}wrote:|-{3,} ?forwarded message ?-{3,}|"
-    r"from:\s.+|sent:\s.+|to:\s.+|subject:\s.+|στις .{5,80}έγραψε:)\s*$")
+    r"(?im)^\s*(-*\s*on .{5,120}wrote\s*-*:?|-{3,} ?forwarded message ?-{3,}|"
+    r"-{3,} ?original message ?-{3,}|am .{5,80}schrieb:?|op .{5,80}schreef:?|"
+    r"##-.*-##|from:\s.+|sent:\s.+|to:\s.+|subject:\s.+|"
+    r"στις .{5,80}έγραψε:?)\s*$")
 URL_RE = re.compile(r"https?://\S+")
 TAG_RE = re.compile(r"<[^>]+>")
 
@@ -92,15 +98,28 @@ def iter_mboxes():
         yield m.stem, m
 
 
+def from_addr(msg) -> str:
+    f = str(msg.get("From", "")).lower()
+    return f.split("<")[-1].rstrip(">").strip() if "<" in f else f.strip()
+
+
 def main():
     out_path = CORPUS / "email-sent.jsonl"
-    kept = skipped = 0
+    kept = skipped = not_owner = 0
     words_by_lang = {"en": 0, "el": 0, "other": 0}
     with out_path.open("w") as out:
         for source, path in iter_mboxes():
             mbox = mailbox.mbox(str(path), factory=lambda f: email.message_from_binary_file(
                 f, policy=email.policy.default))
+            from collections import Counter
+            counts = Counter(from_addr(m) for m in mbox)
+            owner = counts.most_common(1)[0][0] if counts else ""
+            print(f"{source}: owner address detected "
+                  f"({counts[owner]}/{sum(counts.values())} messages)")
             for msg in mbox:
+                if from_addr(msg) != owner:
+                    not_owner += 1
+                    continue
                 text = clean(body_text(msg))
                 words = len(text.split())
                 if words < 5:
@@ -117,7 +136,8 @@ def main():
                 out.write(json.dumps(rec, ensure_ascii=False) + "\n")
                 kept += 1
                 words_by_lang[lang] = words_by_lang.get(lang, 0) + words
-    print(f"kept: {kept} messages, skipped short/empty: {skipped}")
+    print(f"kept: {kept} messages, skipped short/empty: {skipped}, "
+          f"dropped not-owner: {not_owner}")
     for lang, w in words_by_lang.items():
         if w:
             print(f"  {lang}: {w} words")
