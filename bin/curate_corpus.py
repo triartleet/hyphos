@@ -23,13 +23,16 @@ REPO = Path(__file__).resolve().parent.parent
 CORPUS = REPO / "corpus"
 
 FENCE_RE = re.compile(r"```.*?```", re.S)
+IMAGE_RE = re.compile(r"\[Image:[^\]]*\]")
 LONG_TOKEN_RE = re.compile(r"\S{40,}")
-LOG_LINE_RE = re.compile(r"^\s*(at |Error|error:|Traceback|\$ |> |\| |#|//|\d+[:.]\d)")
+LOG_LINE_RE = re.compile(
+    r"^\s*(at |Error|error:|Traceback|\$ |> |\| |#|//|\d+[:.]\d|\d{1,4}[/-]\d{1,2}[/-]\d{1,4})")
 MAX_TYPED_WORDS = 400
 
 
 def strip_machine_text(text: str) -> str:
     text = FENCE_RE.sub(" ", text)
+    text = IMAGE_RE.sub(" ", text)
     kept = []
     for line in text.splitlines():
         if LOG_LINE_RE.match(line):
