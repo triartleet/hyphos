@@ -60,6 +60,9 @@ def main():
             if words == 0:
                 dropped_empty += 1
                 continue
+            if stripped.lstrip()[:1] in "{[" and stripped.count('":') >= 2:
+                dropped_empty += 1  # unfenced JSON/config paste, not prose
+                continue
             rec = {**o, "text": stripped, "words": words, "raw_words": o["words"]}
             if words <= MAX_TYPED_WORDS:
                 cur.write(json.dumps(rec, ensure_ascii=False) + "\n")
