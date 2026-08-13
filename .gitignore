@@ -1,0 +1,6 @@
+corpus/
+profiles/
+*.local.*
+.env
+__pycache__/
+.DS_Store
