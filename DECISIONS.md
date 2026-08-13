@@ -51,3 +51,19 @@ English word choice.
 **Why:** stylometric traits (directness, sentence rhythm, punctuation, humor
 cadence) transfer across languages; idiom and vocabulary do not. Mixing them
 degrades the profile it claims to improve.
+
+### D-005 — The rewrite backend is subscription-first, API-key second
+**Scope:** repo · **Decided:** 2026-08-13
+
+Rewrite and judging calls target the user's existing Claude subscription first, by
+driving the locally installed `claude` CLI; a direct Anthropic API key
+(`ANTHROPIC_API_KEY`) is the secondary backend for headless or scripted use.
+
+**Why:** the likeliest user already pays for a Claude subscription; metered API
+spend should be an opt-in, never a prerequisite for using the tool. It also keeps
+the data plane consistent with D-001 — both backends run under credentials the
+user already controls.
+
+**Consequences:** the CLI must detect an available `claude` binary and degrade
+clearly when neither backend is present; per-call cost reporting only applies on
+the API path.
