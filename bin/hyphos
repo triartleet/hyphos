@@ -1,0 +1,270 @@
+#!/usr/bin/env python3
+"""hyphos — rewrite AI drafts in your own voice, with receipts.
+
+Subcommands:
+  rewrite --register R [--backend auto|claude|api] FILE
+      Model pass guided by your profiles, then the deterministic enforcement
+      pass. Prints the result to stdout and the enforcement report to stderr.
+  enforce [--register R] FILE
+      Enforcement pass only — deterministic de-model-isming, no model call.
+  score --register R FILE
+      Model-free fidelity score: stylometric proximity to the register's
+      fingerprint plus a model-ism count. 100 ≈ statistically yours.
+  blind --register R --generated FILE [-n N]
+      Blind self-test: shuffles real corpus snippets with lines from FILE;
+      you mark which are yours; reports your discrimination rate.
+
+Backends (D-005): "claude" drives the local claude CLI (your existing
+subscription); "api" uses ANTHROPIC_API_KEY. "auto" prefers claude.
+Profiles are read from profiles/ (local-only; see profiles/README.md).
+"""
+import argparse
+import json
+import os
+import random
+import re
+import shutil
+import subprocess
+import sys
+import urllib.request
+from pathlib import Path
+
+REPO = Path(__file__).resolve().parent.parent
+PROFILES = REPO / "profiles"
+CORPUS = REPO / "corpus"
+
+# ---------------- enforcement (deterministic) ----------------
+
+REMOVE_SENTENCE_OPENERS = [
+    r"It(?:'|’)s worth noting that\s+", r"Importantly,\s+",
+    r"Notably,\s+",
+    # standalone flattery sentence only — mid-clause occurrences are flagged,
+    # not amputated (learned from a dangling "to prioritize it." in testing)
+    r"You(?:'|’)re absolutely (?:right|correct)[.!]\s*",
+]
+FLAG_PATTERNS = {
+    "contrast-flip": r"\b(?:that|this|it)(?:'|’)s not (?:just )?\w[\w\s]{0,30}[—,-]\s*(?:it|that)(?:'|’)s\b",
+    "inflation-word": r"\b(?:delve|crucial(?:ly)?|robust|seamless(?:ly)?|comprehensive|pivotal|testament to|tapestry|elevate|game-?changer)\b",
+    "verdict-phrase": r"\b(?:smoking gun|load-bearing|the single most|the sharpest)\b",
+    "flattery-clause": r"\byou(?:'|’)re absolutely (?:right|correct)\b",
+    "bold-sprinkle": r"\*\*[^*\n]{1,30}\*\*",
+}
+
+
+def enforce(text: str) -> tuple[str, dict]:
+    report = {"removed": [], "replaced": 0, "flags": {}}
+    for pat in REMOVE_SENTENCE_OPENERS:
+        text, n = re.subn(pat, "", text)
+        if n:
+            report["removed"].append({"pattern": pat, "count": n})
+    # Em-dashes: alien to the profiled voice (≈0/1k in the pure corpus).
+    # Mid-sentence pair "— x —" -> parentheses; single " — " -> comma;
+    # tight "word—word" -> comma. Digit–digit ranges keep their dash.
+    text, n1 = re.subn(r"\s+—\s+([^—\n]{1,60})\s+—\s+", r" (\1) ", text)
+    text, n2 = re.subn(r"\s+—\s+", ", ", text)
+    text, n3 = re.subn(r"(?<=\w)—(?=\w)", ", ", text)
+    report["replaced"] = n1 * 2 + n2 + n3
+    for name, pat in FLAG_PATTERNS.items():
+        hits = re.findall(pat, text, flags=re.I)
+        if hits:
+            report["flags"][name] = len(hits)
+    text = re.sub(r"[ \t]{2,}", " ", text)
+    return text, report
+
+
+# ---------------- scoring (model-free) ----------------
+
+def text_metrics(text: str) -> dict:
+    words = re.findall(r"[\w']+", text)
+    n = len(words) or 1
+    sents = [s for s in re.split(r"[.!?\n]+", text) if s.strip()]
+    slens = [len(re.findall(r"[\w']+", s)) for s in sents if s.strip()]
+    per1k = lambda c: c * 1000 / n
+    return {
+        "emdash_per_1k": per1k(text.count("—")),
+        "comma_per_1k": per1k(text.count(",")),
+        "excl_per_1k": per1k(text.count("!")),
+        "contractions_per_1k": per1k(len(re.findall(r"\b\w+'(?:s|t|re|ve|ll|d|m)\b", text, re.I))),
+        "sent_p50": sorted(slens)[len(slens) // 2] if slens else 0,
+        "lower_start_rate": (sum(1 for s in sents if s.strip()[:1].islower())
+                             / (len(sents) or 1)),
+    }
+
+
+def load_fingerprint(register: str) -> dict:
+    fp = PROFILES / register / "fingerprint.json"
+    if not fp.is_file():
+        sys.exit(f"no fingerprint for register '{register}' — run bin/profile_fingerprint.py")
+    return json.loads(fp.read_text())
+
+
+def score(text: str, register: str) -> dict:
+    fp = load_fingerprint(register)
+    m = text_metrics(text)
+    ref = {
+        "emdash_per_1k": fp["punct_per_1k_words"].get("—", 0.0),
+        "comma_per_1k": fp["punct_per_1k_words"].get(",", 0.0),
+        "excl_per_1k": fp["punct_per_1k_words"].get("!", 0.0),
+        "contractions_per_1k": fp["contractions_per_1k"],
+        "sent_p50": fp["sentence_len"]["p50"],
+        "lower_start_rate": fp["lowercase_sentence_start_rate"],
+    }
+    scales = {"emdash_per_1k": 2.0, "comma_per_1k": 20.0, "excl_per_1k": 2.0,
+              "contractions_per_1k": 8.0, "sent_p50": 6.0, "lower_start_rate": 0.3}
+    weights = {"emdash_per_1k": 3.0, "comma_per_1k": 1.0, "excl_per_1k": 1.0,
+               "contractions_per_1k": 1.5, "sent_p50": 1.0, "lower_start_rate": 1.0}
+    # Short texts give noisy rate estimates: dampen the high-variance metrics
+    # by length so a 60-word email isn't punished for not matching aggregate
+    # statistics it could never exhibit. Robust signals keep full weight.
+    n_words = len(re.findall(r"[\w']+", text)) or 1
+    damp = min(1.0, n_words / 250)
+    noisy = {"comma_per_1k", "excl_per_1k", "sent_p50", "lower_start_rate"}
+    penalty = total_w = 0.0
+    deltas = {}
+    for k, ref_v in ref.items():
+        d = min(abs(m[k] - ref_v) / scales[k], 1.0)
+        deltas[k] = {"text": round(m[k], 2), "register": round(ref_v, 2)}
+        w = weights[k] * (damp if k in noisy else 1.0)
+        penalty += d * w
+        total_w += w
+    _, rep = enforce(text)
+    ism_hits = sum(rep["flags"].values()) + len(rep["removed"]) + (1 if rep["replaced"] else 0)
+    ism_pen = min(ism_hits * 0.06, 0.4)
+    fidelity = max(0.0, (1 - penalty / total_w) * (1 - ism_pen)) * 100
+    # Honest uncertainty: rate statistics from short texts are noise, and the
+    # stylometric half of this score is only trustworthy at length. Calibration
+    # against the owner's blind-test judgment is the pending stage-3 step.
+    confidence = "ok" if n_words >= 250 else "low"
+    return {"fidelity": round(fidelity, 1), "confidence": confidence,
+            "model_ism_signals": ism_hits, "metric_deltas": deltas,
+            "note": "uncalibrated v1 — the model-ism count is the robust "
+                    "signal on short texts; fidelity needs >=250 words and "
+                    "blind-test calibration"}
+
+
+# ---------------- backends ----------------
+
+def build_prompt(register: str, draft: str) -> str:
+    guide = (PROFILES / register / "styleguide.md")
+    isms = PROFILES / "model-isms.md"
+    parts = ["Rewrite the draft below so it reads as written by the person",
+             "described in the style guide. Preserve the meaning and all facts.",
+             "Match the register exactly; keep protected quirks; remove every",
+             "anti-pattern. Output ONLY the rewritten text.\n"]
+    if guide.is_file():
+        parts += ["== STYLE GUIDE ==", guide.read_text()]
+    if isms.is_file():
+        parts += ["== ANTI-PATTERNS (never produce these) ==", isms.read_text()]
+    parts += ["== DRAFT ==", draft]
+    return "\n".join(parts)
+
+
+def call_claude_cli(prompt: str) -> str:
+    exe = shutil.which("claude")
+    if not exe:
+        raise RuntimeError("claude CLI not found on PATH")
+    r = subprocess.run([exe, "-p", prompt], capture_output=True, text=True,
+                       timeout=600)
+    if r.returncode != 0:
+        raise RuntimeError(f"claude CLI failed: {r.stderr[:300]}")
+    return r.stdout.strip()
+
+
+def call_api(prompt: str) -> str:
+    key = os.environ.get("ANTHROPIC_API_KEY")
+    if not key:
+        raise RuntimeError("ANTHROPIC_API_KEY not set")
+    body = json.dumps({
+        "model": os.environ.get("HYPHOS_MODEL", "claude-sonnet-5"),
+        "max_tokens": 4096,
+        "messages": [{"role": "user", "content": prompt}],
+    }).encode()
+    req = urllib.request.Request(
+        "https://api.anthropic.com/v1/messages", data=body,
+        headers={"x-api-key": key, "anthropic-version": "2023-06-01",
+                 "content-type": "application/json"})
+    with urllib.request.urlopen(req, timeout=300) as resp:
+        data = json.load(resp)
+    return "".join(b.get("text", "") for b in data.get("content", [])).strip()
+
+
+def rewrite(register: str, draft: str, backend: str) -> tuple[str, dict, str]:
+    prompt = build_prompt(register, draft)
+    order = (["claude", "api"] if backend == "auto" else [backend])
+    last_err = None
+    for b in order:
+        try:
+            out = call_claude_cli(prompt) if b == "claude" else call_api(prompt)
+            final, report = enforce(out)
+            return final, report, b
+        except Exception as e:  # try next backend
+            last_err = e
+    sys.exit(f"no backend succeeded: {last_err}")
+
+
+# ---------------- blind test ----------------
+
+def blind(register: str, generated_file: Path, n: int):
+    tagged = CORPUS / "tagged.jsonl"
+    real = []
+    for line in tagged.open():
+        o = json.loads(line)
+        if o["register"] == register and 25 <= o["words"] <= 120:
+            real.append(o["text"])
+    gen = [p.strip() for p in
+           re.split(r"\n\s*\n", generated_file.read_text()) if
+           len(p.split()) >= 15]
+    n = min(n, len(real), len(gen))
+    items = ([(t, True) for t in random.sample(real, n)]
+             + [(t, False) for t in random.sample(gen, n)])
+    random.shuffle(items)
+    correct = 0
+    print(f"{2*n} snippets. Answer y if YOU wrote it, n if not.\n")
+    for i, (text, is_real) in enumerate(items, 1):
+        print(f"--- {i}/{2*n} ---\n{text[:400]}\n")
+        ans = input("yours? [y/n] ").strip().lower()
+        if (ans == "y") == is_real:
+            correct += 1
+    rate = correct / (2 * n)
+    print(f"\ndiscrimination: {correct}/{2*n} = {rate:.0%}")
+    print("50% = the rewrite is indistinguishable from you; "
+          "100% = it fools you never.")
+
+
+# ---------------- main ----------------
+
+def main():
+    ap = argparse.ArgumentParser(prog="hyphos")
+    sub = ap.add_subparsers(dest="cmd", required=True)
+    for name in ("rewrite", "enforce", "score"):
+        p = sub.add_parser(name)
+        p.add_argument("file", type=Path)
+        p.add_argument("--register", default="editorial")
+        if name == "rewrite":
+            p.add_argument("--backend", default="auto",
+                           choices=["auto", "claude", "api"])
+    b = sub.add_parser("blind")
+    b.add_argument("--register", default="technical-instruction")
+    b.add_argument("--generated", type=Path, required=True)
+    b.add_argument("-n", type=int, default=5)
+    a = ap.parse_args()
+
+    if a.cmd == "blind":
+        return blind(a.register, a.generated, a.n)
+    text = a.file.read_text()
+    if a.cmd == "enforce":
+        out, report = enforce(text)
+        sys.stdout.write(out)
+        print("\n== enforcement ==\n" + json.dumps(report, indent=1),
+              file=sys.stderr)
+    elif a.cmd == "score":
+        print(json.dumps(score(text, a.register), indent=1))
+    elif a.cmd == "rewrite":
+        out, report, backend = rewrite(a.register, text, a.backend)
+        sys.stdout.write(out)
+        print(f"\n== backend: {backend} ==\n== enforcement ==\n"
+              + json.dumps(report, indent=1), file=sys.stderr)
+
+
+if __name__ == "__main__":
+    main()

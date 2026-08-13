@@ -4,25 +4,23 @@ Living list — items get done, dropped, or reordered.
 
 ## Now
 
-- Corpus curation: strip machine-flavored text the stage-0 filter still lets
-  through (long embedded blobs, quoted output), so word counts reflect real
-  writing.
+- Blind-test calibration of the fidelity score (needs the user, ~10 min):
+  real-vs-rewritten discrimination anchors the score's meaning.
+- Fingerprint refinements: sentence splitting that doesn't count line breaks
+  as sentence ends in prose; residual quote-fragment cleanup in email ingest.
 
 ## Next
 
-- Register tagging over the corpus (technical / informal / editorial).
-- Voice profiles per register: stylometric fingerprint + distilled style guide
-  with quirks and anti-patterns.
-- `rewrite` CLI: draft + target register → your voice, with the post-model
-  enforcement pass and a diff of what it changed.
-- Fidelity score + `blind` self-test mode to calibrate it.
+- LLM-judge component of the score (semantic half, backend-driven), reported
+  beside the stylometric half.
+- Chat-export ingestion (WhatsApp/Telegram/Meta), speaker-separated — only
+  the user's own messages; non-English as rhythm signal (D-004).
+- Bounce/auto-mail filter in the email ingest.
 
 ## Later
 
-- Chat-export ingestion (WhatsApp/Telegram and similar), with speaker
-  separation — only the user's own messages.
-- Multilingual corpus support (rhythm/register signal, per D-004).
 - More output registers and per-audience presets.
+- Era-weighted profiles (pre-AI-era text as the purity anchor).
 
 ## Shipped
 
@@ -37,3 +35,6 @@ Living list — items get done, dropped, or reordered.
   owner authorship (From filter) and quote/signature stripping.
 - 2026-08-13 — `bin/profile_fingerprint.py`: per-register stylometric
   fingerprints, including a pre-2023 purity split for email.
+- 2026-08-14 — `bin/hyphos`: the CLI — `rewrite` (subscription-first backend,
+  profile-guided prompt, deterministic enforcement pass), `enforce`, `score`
+  (uncalibrated v1, confidence-aware), `blind` (self-test harness).
