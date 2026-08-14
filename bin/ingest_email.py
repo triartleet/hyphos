@@ -75,12 +75,7 @@ def clean(text: str) -> str:
     return text.strip()
 
 
-def lang_of(text: str) -> str:
-    greek = len(re.findall(r"[Ͱ-Ͽἀ-῿]", text))
-    latin = len(re.findall(r"[a-zA-Z]", text))
-    if greek > latin:
-        return "el"
-    return "en" if latin else "other"
+from textlang import detect_lang as lang_of  # greeklish-aware (gr-latn tag)
 
 
 def iter_mboxes():

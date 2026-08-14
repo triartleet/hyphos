@@ -157,7 +157,10 @@ def rules_selftest(verbose: bool = True) -> int:
 def text_metrics(text: str) -> dict:
     words = re.findall(r"[\w']+", text)
     n = len(words) or 1
-    sents = [s for s in re.split(r"[.!?\n]+", text) if s.strip()]
+    # keep sentence splitting identical to profile_fingerprint.py: newlines
+    # are layout, not punctuation
+    norm = re.sub(r"\n\s*\n", "¶", text).replace("\n", " ")
+    sents = [s for s in re.split(r"[.!?¶]+", norm) if s.strip()]
     slens = [len(re.findall(r"[\w']+", s)) for s in sents if s.strip()]
     per1k = lambda c: c * 1000 / n
     return {
@@ -268,7 +271,37 @@ def call_api(prompt: str) -> str:
     return "".join(b.get("text", "") for b in data.get("content", [])).strip()
 
 
-def rewrite(register: str, draft: str, backend: str) -> tuple[str, dict, str]:
+def inject_typos(text: str, register: str) -> tuple[str, int]:
+    """D-006 opt-in: re-introduce the author's REAL typos at the measured
+    per-register rate. Deterministic per input (seeded by the text) so the
+    same draft always gets the same imperfections."""
+    tj = PROFILES / register / "typos.json"
+    fp = PROFILES / register / "fingerprint.json"
+    if not tj.is_file() or not fp.is_file():
+        return text, 0
+    catalog = json.loads(tj.read_text())          # {typo: correction}
+    rate = json.loads(fp.read_text()).get("typo_per_1k", 0)
+    by_correct = {}
+    for typo, correct in catalog.items():
+        by_correct.setdefault(correct, typo)
+    words = re.findall(r"[a-z']+", text.lower())
+    k = round(rate * len(words) / 1000)
+    if k <= 0:
+        return text, 0
+    rng = random.Random(hash(text))
+    positions = [(m.start(), m.group(0)) for m in
+                 re.finditer(r"\b[a-z']+\b", text)
+                 if m.group(0) in by_correct]
+    rng.shuffle(positions)
+    injected = 0
+    for start, word in positions[:k]:
+        text = text[:start] + by_correct[word] + text[start + len(word):]
+        injected += 1
+    return text, injected
+
+
+def rewrite(register: str, draft: str, backend: str,
+            typos: str = "none") -> tuple[str, dict, str]:
     prompt = build_prompt(register, draft)
     order = (["claude", "api"] if backend == "auto" else [backend])
     last_err = None
@@ -276,6 +309,9 @@ def rewrite(register: str, draft: str, backend: str) -> tuple[str, dict, str]:
         try:
             out = call_claude_cli(prompt) if b == "claude" else call_api(prompt)
             final, report = enforce(out)
+            if typos == "natural":
+                final, n = inject_typos(final, register)
+                report["typos_injected"] = n
             return final, report, b
         except Exception as e:  # try next backend
             last_err = e
@@ -471,6 +507,8 @@ def main():
         if name == "rewrite":
             p.add_argument("--backend", default="auto",
                            choices=["auto", "claude", "api"])
+            p.add_argument("--typos", default="none",
+                           choices=["none", "natural"])
     b = sub.add_parser("blind")
     b.add_argument("--register", default="technical-instruction")
     b.add_argument("--generated", type=Path, required=True)
@@ -501,7 +539,7 @@ def main():
     elif a.cmd == "score":
         print(json.dumps(score(text, a.register), indent=1))
     elif a.cmd == "rewrite":
-        out, report, backend = rewrite(a.register, text, a.backend)
+        out, report, backend = rewrite(a.register, text, a.backend, a.typos)
         sys.stdout.write(out)
         print(f"\n== backend: {backend} ==\n== enforcement ==\n"
               + json.dumps(report, indent=1), file=sys.stderr)

@@ -32,7 +32,61 @@ ELLIPSIS_RE = re.compile(r"\.\.\.|…")
 
 
 def sentences_of(text):
-    return [s.strip() for s in re.split(r"[.!?\n]+", text) if s.strip()]
+    # Line breaks are layout, not punctuation: a single newline reads as a
+    # space, a blank line as a boundary. (Measured before this fix: email
+    # sentence stats were halved by greeting/sign-off line splits.)
+    text = re.sub(r"\n\s*\n", "¶", text)
+    text = text.replace("\n", " ")
+    return [s.strip() for s in re.split(r"[.!?¶]+", text) if s.strip()]
+
+
+_DICT = None
+
+
+def dictionary():
+    global _DICT
+    if _DICT is None:
+        try:
+            _DICT = {w.strip().lower() for w in open("/usr/share/dict/words")}
+        except OSError:
+            _DICT = set()
+    return _DICT
+
+
+def edit1_forms(w):
+    letters = "abcdefghijklmnopqrstuvwxyz'"
+    splits = [(w[:i], w[i:]) for i in range(len(w) + 1)]
+    yield from (a + b[1:] for a, b in splits if b)                    # delete
+    yield from (a + b[1] + b[0] + b[2:] for a, b in splits if len(b) > 1)  # swap
+    yield from (a + c + b[1:] for a, b in splits if b for c in letters)    # replace
+    yield from (a + c + b for a, b in splits for c in letters)             # insert
+
+
+def typo_catalog(texts):
+    """The author's REAL typo inventory (D-006: measured, never invented).
+
+    A typo is a RARE event, not vocabulary: the first cut matched any
+    dictionary-missing token with an edit-1 neighbour and produced ~100/1k
+    "typos" — it was classifying modern tech vocabulary (absent from the
+    system wordlist) as misspellings. The honest statistic: a token counts
+    as a typo only if it is rare in the corpus (<=2 occurrences) AND its
+    edit-1 correction is a dictionary word the author himself uses at least
+    3x more often. Returns (typo_count, {typo: correction})."""
+    d = dictionary()
+    if not d:
+        return 0, {}
+    from collections import Counter
+    freq = Counter(w for t in texts for w in re.findall(r"[a-z']{4,14}", t))
+    catalog, count = {}, 0
+    for w, n in freq.items():
+        if n > 2 or w in d:
+            continue
+        for form in edit1_forms(w):
+            if form in d and freq.get(form, 0) >= max(3 * n, 3):
+                catalog[w] = form
+                count += n
+                break
+    return count, catalog
 
 
 def fingerprint(texts):
@@ -123,11 +177,16 @@ def main():
         d = PROFILES / name
         d.mkdir(parents=True, exist_ok=True)
         fp = fingerprint(texts)
+        n_typos, catalog = typo_catalog(texts)
+        fp["typo_per_1k"] = round(n_typos * 1000 / max(fp["words"], 1), 2)
         (d / "fingerprint.json").write_text(
             json.dumps(fp, ensure_ascii=False, indent=1))
+        if catalog:
+            (d / "typos.json").write_text(
+                json.dumps(catalog, ensure_ascii=False, indent=1))
         print(f"{name}: {fp['messages']} msgs, {fp['words']} words, "
               f"sent p50 {fp['sentence_len']['p50']}, "
-              f"lowercase-start {fp['lowercase_sentence_start_rate']}")
+              f"typos/1k {fp['typo_per_1k']} ({len(catalog)} distinct)")
     return 0
 
 
