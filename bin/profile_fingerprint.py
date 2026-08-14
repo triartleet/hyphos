@@ -109,10 +109,13 @@ def main():
             o = json.loads(line)
             if o.get("lang") != "en":
                 continue
-            buckets.setdefault("email-semi-formal", []).append(o["text"])
+            stem = o.get("source", "email:mail").split(":", 1)[1]
+            stem = stem[:-8] if stem.endswith("-account") else stem
+            bucket = f"email-{stem}"
+            buckets.setdefault(bucket, []).append(o["text"])
             y = email_year(o.get("ts", ""))
             if y and y < 2023:
-                buckets.setdefault("email-semi-formal-pre2023", []).append(o["text"])
+                buckets.setdefault(f"{bucket}-pre2023", []).append(o["text"])
     if not buckets:
         print("no corpus files found", file=sys.stderr)
         return 1
