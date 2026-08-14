@@ -82,6 +82,25 @@ def clean(text: str) -> str:
 
 
 from textlang import detect_lang as lang_of  # greeklish-aware (gr-latn tag)
+from textlang import split_by_lang           # per-paragraph mixed-mail split
+
+
+def write_records(out, text, ts, source, words_by_lang, counters):
+    """Emit one record per language chunk (mixed mail splits; see
+    textlang.split_by_lang). Returns number of records written."""
+    n = 0
+    for lang, chunk in split_by_lang(text):
+        words = len(chunk.split())
+        if words < 5:
+            counters["skipped"] += 1
+            continue
+        out.write(json.dumps({
+            "ts": ts, "source": f"email:{source}", "lang": lang,
+            "words": words, "text": chunk,
+        }, ensure_ascii=False) + "\n")
+        words_by_lang[lang] = words_by_lang.get(lang, 0) + words
+        n += 1
+    return n
 
 
 def iter_mboxes():
@@ -162,21 +181,13 @@ def main():
                     not_owner += 1
                     continue
                 text = clean(body_text(msg))
-                words = len(text.split())
-                if words < 5:
+                if len(text.split()) < 5:
                     skipped += 1
                     continue
-                lang = lang_of(text)
-                rec = {
-                    "ts": msg.get("Date", ""),
-                    "source": f"email:{source}",
-                    "lang": lang,
-                    "words": words,
-                    "text": text,
-                }
-                out.write(json.dumps(rec, ensure_ascii=False) + "\n")
-                kept += 1
-                words_by_lang[lang] = words_by_lang.get(lang, 0) + words
+                counters = {"skipped": 0}
+                kept += write_records(out, text, msg.get("Date", ""), source,
+                                      words_by_lang, counters)
+                skipped += counters["skipped"]
 
         # Outlook archives: group per source, detect the dominant sender,
         # keep only that sender's messages — same guarantee as the mbox path.
@@ -194,17 +205,13 @@ def main():
                     not_owner += 1
                     continue
                 text = clean(body)
-                words = len(text.split())
-                if words < 5:
+                if len(text.split()) < 5:
                     skipped += 1
                     continue
-                lang = lang_of(text)
-                out.write(json.dumps({
-                    "ts": date, "source": f"email:{source}", "lang": lang,
-                    "words": words, "text": text,
-                }, ensure_ascii=False) + "\n")
-                kept += 1
-                words_by_lang[lang] = words_by_lang.get(lang, 0) + words
+                counters = {"skipped": 0}
+                kept += write_records(out, text, date, source,
+                                      words_by_lang, counters)
+                skipped += counters["skipped"]
     print(f"kept: {kept} messages, skipped short/empty: {skipped}, "
           f"dropped not-owner: {not_owner}")
     for lang, w in words_by_lang.items():

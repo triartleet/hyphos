@@ -50,6 +50,33 @@ def detect_lang(text: str) -> str:
     return "en"
 
 
+def split_by_lang(text: str):
+    """Split a message into per-language chunks — the fix for mixed mail
+    (a Greek body full of Latin tech vocabulary can win a whole-message
+    majority vote). Classification is per paragraph, adjacent same-language
+    paragraphs merge, and a minority side under 15 words does NOT split the
+    message (a Greek greeting line on an English mail is seasoning, not a
+    second document). Returns [(lang, chunk_text)]."""
+    paras = [p for p in re.split(r"\n\s*\n", text) if p.strip()]
+    if not paras:
+        return [(detect_lang(text), text)]
+    tagged = [(detect_lang(p), p) for p in paras]
+    words_by_lang = {}
+    for lang, p in tagged:
+        words_by_lang[lang] = words_by_lang.get(lang, 0) + len(p.split())
+    majority = max(words_by_lang, key=words_by_lang.get)
+    if len(words_by_lang) == 1 or \
+       sorted(words_by_lang.values())[-2] < 15:
+        return [(majority, text)]
+    chunks = []
+    for lang, p in tagged:
+        if chunks and chunks[-1][0] == lang:
+            chunks[-1] = (lang, chunks[-1][1] + "\n\n" + p)
+        else:
+            chunks.append((lang, p))
+    return chunks
+
+
 if __name__ == "__main__":
     cases = [
         ("kalimera, tha se paro tilefono meta, eimai edo kai perimeno", "gr-latn"),
@@ -65,5 +92,24 @@ if __name__ == "__main__":
         if got != want:
             failures += 1
             print(f"FAIL: {text!r} -> {got}, expected {want}")
-    print(f"{len(cases)} cases, {failures} failure(s)")
+
+    # split_by_lang: mixed mail splits; a short greeting does not
+    mixed = ("Θα ήθελα την γνώμη σας για ένα θέμα που με απασχολεί εδώ και "
+             "καιρό σχετικά με την παραγγελία και την εξέλιξή της.\n\n"
+             "Separately, could you confirm the invoice number and the "
+             "delivery window for the second batch of the order?")
+    got = split_by_lang(mixed)
+    if [l for l, _ in got] != ["el", "en"]:
+        failures += 1
+        print(f"FAIL: mixed mail -> {[l for l, _ in got]}, expected ['el', 'en']")
+    greeting = ("Καλημέρα,\n\n"
+                "quick update, the migration finished and the checks are "
+                "green so I am closing the ticket and moving to the next "
+                "item on the list for this week.")
+    got = split_by_lang(greeting)
+    if len(got) != 1 or got[0][0] != "en":
+        failures += 1
+        print(f"FAIL: greeting mail -> {[(l, t[:20]) for l, t in got]}, expected single en")
+
+    print(f"{len(cases) + 2} cases, {failures} failure(s)")
     raise SystemExit(1 if failures else 0)
