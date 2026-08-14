@@ -75,11 +75,26 @@ def typo_catalog(texts):
     d = dictionary()
     if not d:
         return 0, {}
+
+    def known(w):
+        # The system wordlist carries no plurals, gerunds or contractions —
+        # "flags" and "enforces" are not typos of "flag" and "enforced".
+        if "'" in w or w in d:
+            return True
+        for suf in ("s", "es", "ed", "ing", "ly", "er", "est"):
+            if w.endswith(suf) and w[: -len(suf)] in d:
+                return True
+        if w.endswith("ing") and w[:-3] + "e" in d:   # staging, writing
+            return True
+        if w.endswith("ed") and w[:-1] in d:          # merged, shared
+            return True
+        return False
+
     from collections import Counter
     freq = Counter(w for t in texts for w in re.findall(r"[a-z']{4,14}", t))
     catalog, count = {}, 0
     for w, n in freq.items():
-        if n > 2 or w in d:
+        if n > 2 or known(w):
             continue
         for form in edit1_forms(w):
             if form in d and freq.get(form, 0) >= max(3 * n, 3):
