@@ -65,6 +65,8 @@ def clean(text: str) -> str:
     for line in text.splitlines():
         if QUOTE_INTRO_RE.match(line):
             done = True                            # reply chain begins
+        if re.match(r"^\s*_{10,}\s*$", line):      # Outlook reply divider
+            done = True
         if done or line.lstrip().startswith(">"):
             continue
         lines.append(line)
@@ -91,6 +93,43 @@ def iter_mboxes():
                     yield z.stem, target
     for m in sorted(INBOX.glob("*.mbox")):
         yield m.stem, m
+
+
+# ---- Outlook for Mac archives (.olm): a ZIP of per-message XML files ----
+
+def _olm_field(root, needle):
+    """Tolerant lookup: first descendant whose tag contains `needle`;
+    returns its text or its first attribute value. .olm schemas vary."""
+    for el in root.iter():
+        if needle.lower() in el.tag.lower():
+            if el.text and el.text.strip():
+                return el.text
+            for v in el.attrib.values():
+                if v:
+                    return v
+    return ""
+
+
+def iter_olm_messages():
+    """Yield (source, sender, date, body) for messages in Sent folders of
+    corpus/inbox/*.olm. Authorship is still enforced downstream by the
+    dominant-From filter — the folder is a hint, never the guarantee."""
+    import xml.etree.ElementTree as ET
+    for olm in sorted(INBOX.glob("*.olm")):
+        with zipfile.ZipFile(olm) as zf:
+            for name in zf.namelist():
+                low = name.lower()
+                if "sent" not in low or not low.endswith(".xml"):
+                    continue
+                try:
+                    root = ET.fromstring(zf.read(name))
+                except Exception:
+                    continue
+                sender = _olm_field(root, "SenderAddress").lower().strip()
+                body = _olm_field(root, "CopyBody")
+                if not body:
+                    body = html_to_text(_olm_field(root, "CopyHTMLBody"))
+                yield olm.stem, sender, _olm_field(root, "SentTime"), body
 
 
 def from_addr(msg) -> str:
@@ -129,6 +168,34 @@ def main():
                     "text": text,
                 }
                 out.write(json.dumps(rec, ensure_ascii=False) + "\n")
+                kept += 1
+                words_by_lang[lang] = words_by_lang.get(lang, 0) + words
+
+        # Outlook archives: group per source, detect the dominant sender,
+        # keep only that sender's messages — same guarantee as the mbox path.
+        from collections import Counter, defaultdict
+        olm_msgs = defaultdict(list)
+        for source, sender, date, body in iter_olm_messages():
+            olm_msgs[source].append((sender, date, body))
+        for source, rows in olm_msgs.items():
+            counts = Counter(s for s, _, _ in rows if s)
+            owner = counts.most_common(1)[0][0] if counts else ""
+            print(f"{source} (olm): owner address detected "
+                  f"({counts[owner]}/{len(rows)} messages)")
+            for sender, date, body in rows:
+                if sender != owner:
+                    not_owner += 1
+                    continue
+                text = clean(body)
+                words = len(text.split())
+                if words < 5:
+                    skipped += 1
+                    continue
+                lang = lang_of(text)
+                out.write(json.dumps({
+                    "ts": date, "source": f"email:{source}", "lang": lang,
+                    "words": words, "text": text,
+                }, ensure_ascii=False) + "\n")
                 kept += 1
                 words_by_lang[lang] = words_by_lang.get(lang, 0) + words
     print(f"kept: {kept} messages, skipped short/empty: {skipped}, "
