@@ -4,10 +4,13 @@ Living list — items get done, dropped, or reordered.
 
 ## Now
 
-- Blind-test calibration of the fidelity score (needs the user, ~10 min):
-  real-vs-rewritten discrimination anchors the score's meaning.
 - Fingerprint refinements: sentence splitting that doesn't count line breaks
-  as sentence ends in prose; residual quote-fragment cleanup in email ingest.
+  as sentence ends in prose; residual quote-fragment cleanup in email ingest;
+  per-register typo-rate metric (D-006).
+- `--typos natural|none` flag on rewrite (default none, D-006).
+- Greeklish handling for chat ingest: Latin-written Greek gets its own
+  language tag and stays rhythm-signal only — no transliteration round-trips
+  (two lossy layers). Ready before the Meta export arrives.
 
 ## Next
 

@@ -67,3 +67,19 @@ user already controls.
 **Consequences:** the CLI must detect an available `claude` binary and degrade
 clearly when neither backend is present; per-call cost reporting only applies on
 the API path.
+
+### D-006 — Output is clean by default; imperfections are an opt-in, measured feature
+**Scope:** repo · **Decided:** 2026-08-14
+
+Rewritten output ships typo-free, regardless of how typo-rich the source corpus
+is. A separate opt-in feature may inject characteristic imperfections at the
+author's measured per-register frequency — never invented ones.
+
+**Why:** corpus typos are register artifacts: they cluster in low-stakes prompt
+and dictation contexts, not in text the author sends to people. Reproducing them
+by default would forge carelessness rather than voice. The blind-test finding
+behind this: the author correctly rejected his own typo-heavy prompt text as not
+his for human-facing writing — typo rate is register signal, not identity.
+
+**Consequences:** fingerprints gain a per-register typo-rate metric; the rewrite
+command gains a `--typos natural|none` flag defaulting to none.
