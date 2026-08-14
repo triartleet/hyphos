@@ -1,0 +1,12 @@
+{
+  "name": "hyphos",
+  "short_name": "hyphos",
+  "description": "Rewrite AI drafts in your own voice — local only.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f7f6f3",
+  "theme_color": "#0f766e",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

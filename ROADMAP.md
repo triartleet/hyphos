@@ -38,6 +38,9 @@ Living list — items get done, dropped, or reordered.
   owner authorship (From filter) and quote/signature stripping.
 - 2026-08-13 — `bin/profile_fingerprint.py`: per-register stylometric
   fingerprints, including a pre-2023 purity split for email.
+- 2026-08-14 — `hyphos serve`: Translate-style local web app (PWA) —
+  draft left, your voice right, register tabs, fidelity chip, tune drawer;
+  binds 127.0.0.1 only.
 - 2026-08-14 — `bin/hyphos`: the CLI — `rewrite` (subscription-first backend,
   profile-guided prompt, deterministic enforcement pass), `enforce`, `score`
   (uncalibrated v1, confidence-aware), `blind` (self-test harness).
