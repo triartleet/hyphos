@@ -173,18 +173,23 @@ def main():
             for line in f.open():
                 o = json.loads(line)
                 buckets.setdefault(o["register"], []).append(o["text"])
-    for mail in sorted(CORPUS.glob("email-*.jsonl")):
-        for line in mail.open():
+    for f in sorted(CORPUS.glob("email-*.jsonl")) + sorted(CORPUS.glob("chat-*.jsonl")):
+        kind = "email" if f.name.startswith("email-") else "chat"
+        for line in f.open():
             o = json.loads(line)
             if o.get("lang") != "en":
                 continue
-            stem = o.get("source", "email:mail").split(":", 1)[1]
+            stem = o.get("source", f"{kind}:x").split(":", 1)[1]
             stem = stem[:-8] if stem.endswith("-account") else stem
-            bucket = f"email-{stem}"
+            bucket = f"{kind}-{stem}"
             buckets.setdefault(bucket, []).append(o["text"])
-            y = email_year(o.get("ts", ""))
+            y = email_year(str(o.get("ts", "")))
+            # Era sub-buckets (blind-round-2 finding: era drift is real —
+            # pre-2023 is the purity anchor, recent is the identity anchor).
             if y and y < 2023:
                 buckets.setdefault(f"{bucket}-pre2023", []).append(o["text"])
+            elif y and y >= 2024:
+                buckets.setdefault(f"{bucket}-recent", []).append(o["text"])
     if not buckets:
         print("no corpus files found", file=sys.stderr)
         return 1

@@ -63,6 +63,11 @@ def body_text(msg) -> str:
     return content
 
 
+BOUNCE_RE = re.compile(
+    r"^\s*(\*\* ?Delivery (incomplete|has failed)|Delivery Status Notification|"
+    r"Your message .{0,60}(couldn't|could not) be delivered)", re.I)
+
+
 def clean(text: str) -> str:
     text = text.split("\n-- \n")[0]                # signature delimiter
     lines, done = [], False
@@ -88,6 +93,9 @@ from textlang import split_by_lang           # per-paragraph mixed-mail split
 def write_records(out, text, ts, source, words_by_lang, counters):
     """Emit one record per language chunk (mixed mail splits; see
     textlang.split_by_lang). Returns number of records written."""
+    if BOUNCE_RE.match(text):
+        counters["skipped"] += 1
+        return 0
     n = 0
     for lang, chunk in split_by_lang(text):
         words = len(chunk.split())
