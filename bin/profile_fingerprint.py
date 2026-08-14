@@ -167,11 +167,12 @@ def email_year(ts):
 
 def main():
     buckets = {}
-    tagged = CORPUS / "tagged.jsonl"
-    if tagged.is_file():
-        for line in tagged.open():
-            o = json.loads(line)
-            buckets.setdefault(o["register"], []).append(o["text"])
+    for fname in ("tagged.jsonl", "salvaged.jsonl"):
+        f = CORPUS / fname
+        if f.is_file():
+            for line in f.open():
+                o = json.loads(line)
+                buckets.setdefault(o["register"], []).append(o["text"])
     mail = CORPUS / "email-sent.jsonl"
     if mail.is_file():
         for line in mail.open():
