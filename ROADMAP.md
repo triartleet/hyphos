@@ -14,8 +14,6 @@ Living list — items get done, dropped, or reordered.
 
 ## Next
 
-- LLM-judge component of the score (semantic half, backend-driven), reported
-  beside the stylometric half.
 - Chat-export ingestion (WhatsApp/Telegram/Meta), speaker-separated — only
   the user's own messages; non-English as rhythm signal (D-004).
 - Bounce/auto-mail filter in the email ingest.
@@ -38,6 +36,9 @@ Living list — items get done, dropped, or reordered.
   owner authorship (From filter) and quote/signature stripping.
 - 2026-08-13 — `bin/profile_fingerprint.py`: per-register stylometric
   fingerprints, including a pre-2023 purity split for email.
+- 2026-08-14 — `judge`: model-judged fidelity (register match, quirk
+  fidelity, ism freedom, overall + evidence), CLI `score --judge` and the
+  web app's Judge pass — reported beside the stylometric half, never merged.
 - 2026-08-14 — `hyphos serve`: Translate-style local web app (PWA) —
   draft left, your voice right, register tabs, fidelity chip, tune drawer;
   binds 127.0.0.1 only.

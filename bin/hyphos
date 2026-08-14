@@ -225,6 +225,50 @@ def score(text: str, register: str) -> dict:
                     "blind-test calibration"}
 
 
+# ---------------- LLM judge (the semantic half of the score) ----------------
+
+def judge(text: str, register: str, backend: str = "auto") -> dict:
+    """Model-judged fidelity: does this read as written by the profiled
+    author, in this register? Reported BESIDE the stylometric score, never
+    averaged into it — the two halves fail differently and a merged number
+    would hide which one is complaining."""
+    guide = PROFILES / register / "styleguide.md"
+    isms = PROFILES / "model-isms.md"
+    prompt = "\n".join([
+        "You are judging whether the TEXT below reads as written by the",
+        "specific person described in the STYLE GUIDE, in that register.",
+        "Judge voice, not content. Score each 0-100:",
+        "- register_match: right mode (tone, formality, shape) for this register",
+        "- quirk_fidelity: the author's protected habits present and natural",
+        "- model_ism_freedom: absence of the anti-patterns listed",
+        "- overall: would a careful reader accept this as the author's writing",
+        "Cite up to 3 short evidence phrases from the TEXT. Output ONLY a JSON",
+        'object: {"register_match":N,"quirk_fidelity":N,"model_ism_freedom":N,'
+        '"overall":N,"evidence":["...","..."]}',
+        "",
+        "== STYLE GUIDE ==",
+        guide.read_text() if guide.is_file() else "(missing)",
+        "== ANTI-PATTERNS ==",
+        isms.read_text() if isms.is_file() else "(missing)",
+        "== TEXT ==",
+        text,
+    ])
+    order = (["claude", "api"] if backend == "auto" else [backend])
+    last_err = None
+    for b in order:
+        try:
+            raw = call_claude_cli(prompt) if b == "claude" else call_api(prompt)
+            m = re.search(r"\{.*\}", raw, re.S)
+            if not m:
+                raise ValueError(f"no JSON in judge output: {raw[:120]}")
+            out = json.loads(m.group(0))
+            out["backend"] = b
+            return out
+        except Exception as e:
+            last_err = e
+    return {"error": f"judge failed: {last_err}"}
+
+
 # ---------------- backends ----------------
 
 def build_prompt(register: str, draft: str) -> str:
@@ -470,11 +514,15 @@ def serve(port: int):
                         inferred = infer_register(text)
                         register = inferred["register"]
                     out, rep, backend = rewrite(register, text,
-                                                body.get("backend", "auto"))
+                                                body.get("backend", "auto"),
+                                                body.get("typos", "none"))
+                    sc = score(out, register)
+                    if body.get("judge"):
+                        sc["judge"] = judge(out, register,
+                                            body.get("backend", "auto"))
                     self._json(200, {"text": out, "enforcement": rep,
                                      "backend": backend, "register": register,
-                                     "inferred": inferred,
-                                     "score": score(out, register)})
+                                     "inferred": inferred, "score": sc})
                 elif self.path == "/api/enforce":
                     out, rep = enforce(text)
                     self._json(200, {"text": out, "enforcement": rep})
@@ -504,6 +552,9 @@ def main():
         p = sub.add_parser(name)
         p.add_argument("file", type=Path)
         p.add_argument("--register", default="editorial")
+        if name == "score":
+            p.add_argument("--judge", action="store_true",
+                           help="add the model-judged half (slower, backend call)")
         if name == "rewrite":
             p.add_argument("--backend", default="auto",
                            choices=["auto", "claude", "api"])
@@ -537,7 +588,10 @@ def main():
         print("\n== enforcement ==\n" + json.dumps(report, indent=1),
               file=sys.stderr)
     elif a.cmd == "score":
-        print(json.dumps(score(text, a.register), indent=1))
+        result = score(text, a.register)
+        if a.judge:
+            result["judge"] = judge(text, a.register)
+        print(json.dumps(result, indent=1))
     elif a.cmd == "rewrite":
         out, report, backend = rewrite(a.register, text, a.backend, a.typos)
         sys.stdout.write(out)
