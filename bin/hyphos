@@ -33,43 +33,123 @@ REPO = Path(__file__).resolve().parent.parent
 PROFILES = REPO / "profiles"
 CORPUS = REPO / "corpus"
 
-# ---------------- enforcement (deterministic) ----------------
+# ---------------- adaptation rules (D-008: standardized, testable) ----------------
+# Every content-adaptation operation is a declared rule: id, kind, pattern,
+# and its OWN test cases. The engine applies rules in listed order
+# (deterministic), reports per-rule counts, and `hyphos rules --test`
+# verifies every rule against its cases. Personal additions may be dropped
+# in profiles/rules.json (same schema) — merged after the built-ins.
 
-REMOVE_SENTENCE_OPENERS = [
-    r"It(?:'|’)s worth noting that\s+", r"Importantly,\s+",
-    r"Notably,\s+",
-    # standalone flattery sentence only — mid-clause occurrences are flagged,
-    # not amputated (learned from a dangling "to prioritize it." in testing)
-    r"You(?:'|’)re absolutely (?:right|correct)[.!]\s*",
+RULES = [
+    {"id": "opener-worth-noting", "kind": "remove",
+     "pattern": r"It(?:'|’)s worth noting that\s+",
+     "tests": [{"in": "It's worth noting that X works.", "out": "X works."}]},
+    {"id": "opener-importantly", "kind": "remove",
+     "pattern": r"Importantly,\s+",
+     "tests": [{"in": "Importantly, it passed.", "out": "it passed."}]},
+    {"id": "opener-notably", "kind": "remove",
+     "pattern": r"Notably,\s+",
+     "tests": [{"in": "Notably, both fail.", "out": "both fail."}]},
+    {"id": "flattery-standalone", "kind": "remove",
+     # standalone sentence only — mid-clause occurrences are flagged, not
+     # amputated (learned from a dangling "to prioritize it." in testing)
+     "pattern": r"You(?:'|’)re absolutely (?:right|correct)[.!]\s*",
+     "tests": [{"in": "You're absolutely right. Next point.", "out": "Next point."},
+               {"in": "You're absolutely right to ask.",
+                "out": "You're absolutely right to ask."}]},
+    {"id": "emdash-pair", "kind": "replace",
+     "pattern": r"\s+—\s+([^—\n]{1,60})\s+—\s+", "replacement": r" (\1) ",
+     "tests": [{"in": "a — the fix — b", "out": "a (the fix) b"}]},
+    {"id": "emdash-single", "kind": "replace",
+     "pattern": r"\s+—\s+", "replacement": ", ",
+     "tests": [{"in": "clear — mostly", "out": "clear, mostly"}]},
+    {"id": "emdash-tight", "kind": "replace",
+     # letters only: \w includes digits, and the first self-test run caught
+     # this rule mangling year ranges ("1990—1995") exactly as its own
+     # docstring promised it wouldn't
+     "pattern": r"(?<=[a-zA-Z])—(?=[a-zA-Z])", "replacement": ", ",
+     "tests": [{"in": "yes—no", "out": "yes, no"},
+               {"in": "1990—1995", "out": "1990—1995"}]},
+    {"id": "contrast-flip", "kind": "flag",
+     "pattern": r"\b(?:that|this|it)(?:'|’)s not (?:just )?\w[\w\s]{0,30}[—,-]\s*(?:it|that)(?:'|’)s\b",
+     "tests": [{"in": "it's not just speed, it's design", "flags": 1}]},
+    {"id": "inflation-word", "kind": "flag",
+     "pattern": r"\b(?:delve|crucial(?:ly)?|robust|seamless(?:ly)?|comprehensive|pivotal|testament to|tapestry|elevate|game-?changer)\b",
+     "tests": [{"in": "a robust and seamless flow", "flags": 2}]},
+    {"id": "verdict-phrase", "kind": "flag",
+     "pattern": r"\b(?:smoking gun|load-bearing|the single most|the sharpest)\b",
+     "tests": [{"in": "that is the smoking gun", "flags": 1}]},
+    {"id": "flattery-clause", "kind": "flag",
+     "pattern": r"\byou(?:'|’)re absolutely (?:right|correct)\b",
+     "tests": [{"in": "you're absolutely right to ask", "flags": 1}]},
+    {"id": "bold-sprinkle", "kind": "flag",
+     "pattern": r"\*\*[^*\n]{1,30}\*\*",
+     "tests": [{"in": "the **key** point", "flags": 1}]},
 ]
-FLAG_PATTERNS = {
-    "contrast-flip": r"\b(?:that|this|it)(?:'|’)s not (?:just )?\w[\w\s]{0,30}[—,-]\s*(?:it|that)(?:'|’)s\b",
-    "inflation-word": r"\b(?:delve|crucial(?:ly)?|robust|seamless(?:ly)?|comprehensive|pivotal|testament to|tapestry|elevate|game-?changer)\b",
-    "verdict-phrase": r"\b(?:smoking gun|load-bearing|the single most|the sharpest)\b",
-    "flattery-clause": r"\byou(?:'|’)re absolutely (?:right|correct)\b",
-    "bold-sprinkle": r"\*\*[^*\n]{1,30}\*\*",
-}
+
+PIPELINE_FIXTURES = [
+    {"in": "Importantly, this — mostly — works.",
+     "out": "this (mostly) works."},
+]
+
+
+def load_rules() -> list:
+    rules = list(RULES)
+    overlay = PROFILES / "rules.json"
+    if overlay.is_file():
+        try:
+            rules += json.loads(overlay.read_text())
+        except Exception:
+            pass
+    return rules
+
+
+def apply_one(rule: dict, text: str) -> tuple[str, int]:
+    if rule["kind"] == "remove":
+        return re.subn(rule["pattern"], "", text)
+    if rule["kind"] == "replace":
+        return re.subn(rule["pattern"], rule["replacement"], text)
+    return text, len(re.findall(rule["pattern"], text, flags=re.I))
 
 
 def enforce(text: str) -> tuple[str, dict]:
-    report = {"removed": [], "replaced": 0, "flags": {}}
-    for pat in REMOVE_SENTENCE_OPENERS:
-        text, n = re.subn(pat, "", text)
-        if n:
-            report["removed"].append({"pattern": pat, "count": n})
-    # Em-dashes: alien to the profiled voice (≈0/1k in the pure corpus).
-    # Mid-sentence pair "— x —" -> parentheses; single " — " -> comma;
-    # tight "word—word" -> comma. Digit–digit ranges keep their dash.
-    text, n1 = re.subn(r"\s+—\s+([^—\n]{1,60})\s+—\s+", r" (\1) ", text)
-    text, n2 = re.subn(r"\s+—\s+", ", ", text)
-    text, n3 = re.subn(r"(?<=\w)—(?=\w)", ", ", text)
-    report["replaced"] = n1 * 2 + n2 + n3
-    for name, pat in FLAG_PATTERNS.items():
-        hits = re.findall(pat, text, flags=re.I)
-        if hits:
-            report["flags"][name] = len(hits)
+    report = {"applied": {}, "flags": {}}
+    for rule in load_rules():
+        if rule["kind"] == "flag":
+            _, n = apply_one(rule, text)
+            if n:
+                report["flags"][rule["id"]] = n
+        else:
+            text, n = apply_one(rule, text)
+            if n:
+                report["applied"][rule["id"]] = n
     text = re.sub(r"[ \t]{2,}", " ", text)
     return text, report
+
+
+def rules_selftest(verbose: bool = True) -> int:
+    failures = 0
+    for rule in load_rules():
+        for t in rule.get("tests", []):
+            out, n = apply_one(rule, t["in"])
+            if "out" in t and out != t["out"]:
+                failures += 1
+                print(f"FAIL {rule['id']}: {t['in']!r} -> {out!r}, "
+                      f"expected {t['out']!r}")
+            elif "flags" in t and n != t["flags"]:
+                failures += 1
+                print(f"FAIL {rule['id']}: {t['in']!r} flagged {n}, "
+                      f"expected {t['flags']}")
+    for fx in PIPELINE_FIXTURES:
+        out, _ = enforce(fx["in"])
+        if out != fx["out"]:
+            failures += 1
+            print(f"FAIL pipeline: {fx['in']!r} -> {out!r}, expected {fx['out']!r}")
+    if verbose:
+        n_rules = len(load_rules())
+        n_tests = sum(len(r.get('tests', [])) for r in load_rules()) + len(PIPELINE_FIXTURES)
+        print(f"{n_rules} rules, {n_tests} tests, {failures} failure(s)")
+    return failures
 
 
 # ---------------- scoring (model-free) ----------------
@@ -128,7 +208,7 @@ def score(text: str, register: str) -> dict:
         penalty += d * w
         total_w += w
     _, rep = enforce(text)
-    ism_hits = sum(rep["flags"].values()) + len(rep["removed"]) + (1 if rep["replaced"] else 0)
+    ism_hits = sum(rep["applied"].values()) + sum(rep["flags"].values())
     ism_pen = min(ism_hits * 0.06, 0.4)
     fidelity = max(0.0, (1 - penalty / total_w) * (1 - ism_pen)) * 100
     # Honest uncertainty: rate statistics from short texts are noise, and the
@@ -231,6 +311,74 @@ def blind(register: str, generated_file: Path, n: int):
           "100% = it fools you never.")
 
 
+# ---------------- registers as data (D-007) ----------------
+
+def registers_info() -> list:
+    """Discover registers from profile buckets. A register exists because
+    corpus exists; confidence reflects sampling depth, and low confidence
+    advertises its cure (more samples) instead of hiding the register."""
+    out = []
+    if not PROFILES.is_dir():
+        return out
+    for d in sorted(PROFILES.iterdir()):
+        fp = d / "fingerprint.json"
+        if not d.is_dir() or not fp.is_file() or d.name.endswith("-pre2023"):
+            continue
+        words = json.loads(fp.read_text()).get("words", 0)
+        conf = "high" if words >= 30000 else "medium" if words >= 8000 else "low"
+        out.append({"register": d.name, "words": words, "confidence": conf,
+                    "hint": None if conf != "low" else
+                    "low sampling — add source material to sharpen this voice"})
+    return out
+
+
+def infer_register(text: str) -> dict:
+    """Pick the closest register for a draft by stylometric proximity.
+    Confidence comes from the margin between the top two candidates."""
+    ranked = []
+    for r in registers_info():
+        # Low-sample buckets have unstable fingerprints and can win proximity
+        # by accident — inference only ranks registers the tool can actually
+        # produce confidently (they stay selectable by hand).
+        if r["confidence"] == "low":
+            continue
+        try:
+            ranked.append((score(text, r["register"])["fidelity"], r["register"]))
+        except SystemExit:
+            continue
+    if not ranked:
+        return {"register": "editorial", "confidence": "none", "scores": {}}
+    ranked.sort(reverse=True)
+    margin = ranked[0][0] - (ranked[1][0] if len(ranked) > 1 else 0)
+    return {"register": ranked[0][1],
+            "confidence": "high" if margin >= 15 else "low",
+            "scores": {r: round(s, 1) for s, r in ranked}}
+
+
+def record_feedback(entry: dict) -> dict:
+    """Append a good/fine/bad verdict (with optional justification) and
+    return aggregate counts plus a suggestion when evidence accumulates."""
+    import datetime
+    fb = CORPUS / "feedback.jsonl"
+    entry = {"ts": datetime.datetime.now().isoformat(timespec="seconds"),
+             "register": entry.get("register", "?"),
+             "verdict": entry.get("verdict", "fine"),
+             "note": (entry.get("note") or "")[:500]}
+    with fb.open("a") as f:
+        f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+    counts = {"good": 0, "fine": 0, "bad": 0}
+    for line in fb.open():
+        o = json.loads(line)
+        if o.get("register") == entry["register"] and o.get("verdict") in counts:
+            counts[o["verdict"]] += 1
+    suggestion = None
+    if counts["bad"] >= 3 and counts["bad"] > counts["good"]:
+        suggestion = ("this register keeps disappointing — expand its source "
+                      "material (drop samples in corpus/) or revisit its style "
+                      "guide; the justifications in corpus/feedback.jsonl say why")
+    return {"counts": counts, "suggestion": suggestion}
+
+
 # ---------------- local web app ----------------
 
 def serve(port: int):
@@ -274,11 +422,22 @@ def serve(port: int):
                 body = json.loads(self.rfile.read(n) or b"{}")
                 text = body.get("text", "")
                 register = body.get("register", "editorial")
-                if self.path == "/api/rewrite":
+                if self.path == "/api/registers":
+                    self._json(200, {"registers": registers_info()})
+                elif self.path == "/api/infer":
+                    self._json(200, infer_register(text))
+                elif self.path == "/api/feedback":
+                    self._json(200, record_feedback(body))
+                elif self.path == "/api/rewrite":
+                    inferred = None
+                    if register == "auto":
+                        inferred = infer_register(text)
+                        register = inferred["register"]
                     out, rep, backend = rewrite(register, text,
                                                 body.get("backend", "auto"))
                     self._json(200, {"text": out, "enforcement": rep,
-                                     "backend": backend,
+                                     "backend": backend, "register": register,
+                                     "inferred": inferred,
                                      "score": score(out, register)})
                 elif self.path == "/api/enforce":
                     out, rep = enforce(text)
@@ -318,8 +477,17 @@ def main():
     b.add_argument("-n", type=int, default=5)
     s = sub.add_parser("serve")
     s.add_argument("--port", type=int, default=4177)
+    r = sub.add_parser("rules")
+    r.add_argument("--test", action="store_true")
     a = ap.parse_args()
 
+    if a.cmd == "rules":
+        if a.test:
+            sys.exit(1 if rules_selftest() else 0)
+        for rule in load_rules():
+            print(f"{rule['id']:<22} {rule['kind']:<8} "
+                  f"{len(rule.get('tests', []))} test(s)")
+        return
     if a.cmd == "serve":
         return serve(a.port)
     if a.cmd == "blind":

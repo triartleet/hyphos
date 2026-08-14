@@ -38,6 +38,8 @@ python3 bin/extract_corpus.py /path/dir  # or any transcript directory
 `CLAUDE_CONFIG_DIR` is honored if set. Output lands in `corpus/` (gitignored).
 Stdout prints aggregate numbers only — no project names, safe to share.
 
+Self-test the adaptation rules any time: `bin/hyphos rules --test`.
+
 ## Privacy by design
 
 Your corpus and profiles never leave your machine: `corpus/` and `profiles/` are

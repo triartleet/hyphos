@@ -150,6 +150,12 @@ kbd{border:1px solid var(--line); border-radius:4px; padding:0 5px; font-size:11
       <span class="chip" id="chip"><span class="dot"></span><span id="chiptext"></span></span>
       <span class="small" id="changes"></span>
       <span style="flex:1"></span>
+      <span id="fb" style="display:none; gap:6px; align-items:center">
+        <button class="btn" data-v="good" title="mark this output good">👍</button>
+        <button class="btn" data-v="fine" title="mark this output fine">〰️</button>
+        <button class="btn" data-v="bad" title="mark this output bad (asks why)">👎</button>
+      </span>
+      <span class="small" id="fbhint"></span>
       <button class="btn" id="copy" hidden>Copy</button>
     </div>
   </section>
@@ -178,19 +184,14 @@ kbd{border:1px solid var(--line); border-radius:4px; padding:0 5px; font-size:11
 <footer>Local only — your text never leaves this machine · <kbd>⌘</kbd><kbd>⏎</kbd> rewrites</footer>
 
 <script>
-const REGISTERS = [
-  ["technical", "technical-instruction"],
-  ["informal", "informal"],
-  ["editorial", "editorial"],
-  ["email", "email-semi-formal"],
-];
 const $ = id => document.getElementById(id);
-let reg = localStorage.getItem("hyphos.reg") || "editorial";
-
+let reg = localStorage.getItem("hyphos.reg") || "auto";
 const tabs = $("tabs");
-for (const [label, value] of REGISTERS) {
+
+function addTab(value, label, hint) {
   const b = document.createElement("button");
   b.textContent = label;
+  if (hint) { b.title = hint; b.textContent += " ·"; }
   b.dataset.v = value;
   b.onclick = () => { reg = value; localStorage.setItem("hyphos.reg", value); paint(); };
   tabs.appendChild(b);
@@ -198,7 +199,18 @@ for (const [label, value] of REGISTERS) {
 function paint() {
   for (const b of tabs.children) b.classList.toggle("on", b.dataset.v === reg);
 }
-paint();
+// Registers are discovered, never declared (D-007): the server lists what
+// the profiles can produce, with sampling-depth confidence.
+addTab("auto", "auto", "infer the register from the draft");
+fetch("/api/registers").then(r => r.json()).then(d => {
+  for (const r of d.registers || []) {
+    const label = r.register.replace("technical-instruction", "technical")
+                            .replace("email-semi-formal", "email");
+    addTab(r.register, label, r.hint);
+  }
+  if (![...tabs.children].some(b => b.dataset.v === reg)) reg = "auto";
+  paint();
+}).catch(() => { addTab("editorial", "editorial"); paint(); });
 
 $("in").value = localStorage.getItem("hyphos.draft") || "";
 $("in").addEventListener("input", () => {
@@ -224,8 +236,13 @@ async function run() {
     const d = await r.json();
     if (!r.ok) throw new Error(d.error || r.statusText);
     out.textContent = d.text;
-    $("backend").textContent = "via " + d.backend;
+    lastRegister = d.register || reg;
+    $("backend").textContent = "via " + d.backend +
+      (d.inferred ? ` · auto → ${d.inferred.register}` +
+        (d.inferred.confidence === "low" ? " (low conf.)" : "") : "");
     $("copy").hidden = false;
+    $("fb").style.display = "inline-flex";
+    $("fbhint").textContent = "";
     const s = d.score || {};
     if (s.fidelity !== undefined) {
       const chip = $("chip"); chip.style.display = "inline-flex";
@@ -239,11 +256,11 @@ async function run() {
     if ($("tshow").checked && d.enforcement) {
       const e = d.enforcement;
       const bits = [];
-      if (e.replaced) bits.push(`${e.replaced} dash${e.replaced === 1 ? "" : "es"} rewritten`);
-      if (e.removed?.length) bits.push(`${e.removed.length} opener${e.removed.length === 1 ? "" : "s"} removed`);
+      const applied = Object.entries(e.applied || {});
+      if (applied.length) bits.push("fixed: " + applied.map(([k, v]) => `${k}×${v}`).join(", "));
       const flags = Object.entries(e.flags || {});
       if (flags.length) bits.push("flagged: " + flags.map(([k, v]) => `${k}×${v}`).join(", "));
-      $("changes").textContent = bits.length ? "enforcement: " + bits.join(" · ") : "enforcement: clean pass";
+      $("changes").textContent = bits.length ? "rules: " + bits.join(" · ") : "rules: clean pass";
     }
   } catch (err) {
     out.textContent = "Backend problem: " + err.message;
@@ -260,6 +277,21 @@ $("copy").onclick = async () => {
   await navigator.clipboard.writeText($("out").textContent);
   $("copy").textContent = "Copied"; setTimeout(() => $("copy").textContent = "Copy", 1200);
 };
+let lastRegister = null;
+for (const b of $("fb").querySelectorAll("button")) {
+  b.onclick = async () => {
+    const verdict = b.dataset.v;
+    const note = verdict === "bad"
+      ? (prompt("What was off? One line helps the engine improve.") || "")
+      : "";
+    const r = await fetch("/api/feedback", {
+      method: "POST", headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({register: lastRegister || reg, verdict, note}),
+    }).then(x => x.json()).catch(() => ({}));
+    $("fb").style.display = "none";
+    $("fbhint").textContent = r.suggestion || "noted";
+  };
+}
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js");
 </script>
 </body>

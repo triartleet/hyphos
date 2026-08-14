@@ -83,3 +83,46 @@ his for human-facing writing — typo rate is register signal, not identity.
 
 **Consequences:** fingerprints gain a per-register typo-rate metric; the rewrite
 command gains a `--typos natural|none` flag defaulting to none.
+
+### D-007 — Registers are discovered from data, never declared in code
+**Scope:** repo · **Decided:** 2026-08-14
+
+The register list is whatever profile buckets exist with corpus behind them.
+The interface surfaces each register with a confidence derived from sampling
+depth; low-confidence registers advertise their cure (add source material)
+instead of hiding. An "auto" mode infers the register from the draft by
+stylometric proximity, with the inference and its confidence always shown and
+overridable. A local feedback loop (good / fine / bad, with a one-line
+justification on bad) accumulates evidence per register and surfaces
+improvement suggestions once a pattern forms.
+
+**Why:** hardcoded registers make the tool rigid exactly where voices differ
+most — one person's set of modes is not another's. A register defined as "a
+folder of samples" means users create new registers (a dm-to-manager voice, a
+changelog voice) by supplying material, not by asking for features. Confidence
+shown honestly beats capability implied falsely, and the user's own quality
+verdicts are the cheapest reliable improvement signal a local tool can have.
+
+**Consequences:** the web UI builds its tabs from `/api/registers` at load;
+`/api/infer` ranks buckets by fidelity-proximity; feedback lands in
+`corpus/feedback.jsonl` (local-only, like all voice data).
+
+### D-008 — Content adaptation is a rule registry, never ad-hoc prose rework
+**Scope:** repo · **Decided:** 2026-08-14
+
+Every deterministic content-adaptation operation is a declared rule — id,
+kind (remove / replace / flag), pattern, and its own embedded test cases —
+applied by one engine in listed order with per-rule reporting. `hyphos rules`
+lists them; `hyphos rules --test` verifies every rule against its cases plus
+whole-pipeline fixtures, and is the repo's standing correctness command.
+Personal rules extend via `profiles/rules.json`, same schema.
+
+**Why:** transformations written as ad-hoc code accumulate into behavior
+nobody can predict or verify — the same decay that kills prose rules kills
+prose-shaped code. Rules as data are enumerable, individually testable, and
+their application is a report rather than a mystery. The first self-test run
+proved the point: it immediately caught a live bug (a dash rule mangling
+year ranges its own comment claimed to protect).
+
+**Consequences:** new adaptations must arrive as rules with tests; a rule
+without tests fails review by construction.
