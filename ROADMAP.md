@@ -14,6 +14,10 @@ Living list — items get done, dropped, or reordered.
 
 ## Next
 
+- Mixed-language email classification: majority-script per message
+  misses Greek mail with Latin tech vocabulary — classify per paragraph or
+  by windowed majority (found via a real sample slipping the en filter).
+
 - Chat-export ingestion (WhatsApp/Telegram/Meta), speaker-separated — only
   the user's own messages; non-English as rhythm signal (D-004).
 - Bounce/auto-mail filter in the email ingest.
