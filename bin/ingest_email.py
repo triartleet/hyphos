@@ -40,10 +40,14 @@ URL_RE = re.compile(r"https?://\S+")
 TAG_RE = re.compile(r"<[^>]+>")
 
 
-def html_to_text(html: str) -> str:
-    html = re.sub(r"(?is)<(style|script).*?</\1>", " ", html)
-    html = re.sub(r"(?i)<br\s*/?>|</p>|</div>", "\n", html)
-    return TAG_RE.sub(" ", html)
+def html_to_text(markup: str) -> str:
+    import html as html_mod
+    markup = re.sub(r"(?is)<(style|script).*?</\1>", " ", markup)
+    markup = re.sub(r"(?i)<br\s*/?>|</p>|</div>", "\n", markup)
+    return html_mod.unescape(TAG_RE.sub(" ", markup))
+
+
+HTMLISH_RE = re.compile(r"<(html|body|div|p|span|meta)[ >]", re.I)
 
 
 def body_text(msg) -> str:
@@ -126,9 +130,12 @@ def iter_olm_messages():
                 except Exception:
                     continue
                 sender = _olm_field(root, "SenderAddress").lower().strip()
-                body = _olm_field(root, "CopyBody")
-                if not body:
-                    body = html_to_text(_olm_field(root, "CopyHTMLBody"))
+                body = _olm_field(root, "CopyBody") or _olm_field(root, "CopyHTMLBody")
+                # Outlook stores HTML inside the plain-body field for HTML
+                # mail — detect by content, not by tag name (found via raw
+                # markup surviving into the corpus).
+                if HTMLISH_RE.search(body[:400]):
+                    body = html_to_text(body)
                 yield olm.stem, sender, _olm_field(root, "SentTime"), body
 
 

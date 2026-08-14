@@ -173,8 +173,7 @@ def main():
             for line in f.open():
                 o = json.loads(line)
                 buckets.setdefault(o["register"], []).append(o["text"])
-    mail = CORPUS / "email-sent.jsonl"
-    if mail.is_file():
+    for mail in sorted(CORPUS.glob("email-*.jsonl")):
         for line in mail.open():
             o = json.loads(line)
             if o.get("lang") != "en":
