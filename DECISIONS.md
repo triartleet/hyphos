@@ -126,3 +126,26 @@ year ranges its own comment claimed to protect).
 
 **Consequences:** new adaptations must arrive as rules with tests; a rule
 without tests fails review by construction.
+
+### D-008 — TypeScript/Node reimplementation, gated on stage-by-stage parity
+**Scope:** repo · **Decided:** 2026-08-15
+
+The tool is reimplemented in TypeScript and run via `npx`; the Python scripts are
+retired. The port is not a rewrite-by-feel: every stage's output is verified
+identical to the previous implementation on a real corpus before cutover
+(`npm run parity`; the harness lives in `parity/`). Shared primitives that
+govern cross-language fidelity — rounding (round-half-to-even), tokenization
+(Unicode-aware word and sentence rules), language tagging — live once in
+`src/lib/` and every stage draws on them rather than re-deriving them.
+
+**Why:** distribution and longevity. `npx hyphos` reaches the ecosystem this tool
+serves far better than a clone-and-run script, and one toolchain is one fewer
+thing to keep alive as the surrounding tools change. Parity-gating made the
+switch safe rather than a leap — the gate caught two real defects a hand port
+would have shipped silently: a whitespace-splitting mismatch that miscounted
+words, and a tie-break ordering difference in the connector ranking.
+
+**Consequences:** behavior parity with the retired implementation is the standard
+for any stage change (`npm run parity` stays green); new numeric or tokenization
+behavior goes through `src/lib`, never re-implemented per stage; the previous
+implementation remains in git history for auditing the port.

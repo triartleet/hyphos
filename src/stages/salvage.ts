@@ -21,9 +21,9 @@
  */
 import fs from "node:fs";
 import path from "node:path";
-import { pyRound } from "../lib/num.js";
 import { whitespaceSplit } from "../lib/text.js";
 import { corpusDir } from "../lib/paths.js";
+import { scores, type RegisterScores } from "./tag.js";
 
 // --- salvage-side heuristics -------------------------------------------------
 
@@ -95,106 +95,6 @@ function salvage(text: string): string | null {
   return whitespaceSplit(out).length >= 8 ? out : null;
 }
 
-// --- register scorer (inlined from the register-tagging stage) ---------------
-//
-// Rule-based register scoring: buckets a fragment into technical-instruction,
-// informal, or editorial. Casing and terminal punctuation are ignored on purpose
-// (they are the author's universal habits, not register signal).
-
-const IMPERATIVES = new Set([
-  "add", "build", "change", "check", "clean", "close", "commit", "compare",
-  "continue", "create", "delete", "deploy", "do", "ensure", "explain", "find",
-  "fix", "generate", "give", "go", "implement", "install", "investigate",
-  "keep", "list", "load", "make", "move", "open", "please", "proceed", "push",
-  "read", "record", "refactor", "remove", "rename", "rerun", "resume", "run",
-  "search", "show", "start", "stop", "test", "try", "update", "use", "verify",
-  "write",
-]);
-const TECH_NOUNS = new Set([
-  "agent", "api", "branch", "bug", "build", "cli", "code", "commit", "config",
-  "deploy", "endpoint", "error", "file", "flag", "function", "hook", "log",
-  "merge", "pipeline", "pr", "repo", "script", "session", "test", "token",
-  "typescript", "ui", "workflow",
-]);
-const CASUAL_TOKENS = new Set([
-  "ah", "btw", "cool", "haha", "hey", "hm", "hmm", "lol", "nah", "nope",
-  "ok", "okay", "oops", "pls", "r", "thanks", "thx", "u", "wanna", "wtf",
-  "yeah", "yep",
-]);
-const DISCOURSE = new Set([
-  "actually", "although", "besides", "however", "indeed", "instead",
-  "moreover", "nevertheless", "overall", "rather", "therefore", "though",
-  "ultimately", "whereas", "while",
-]);
-
-// The scorer's own (narrower) instruction pattern. Global for match-counting.
-const SCORES_INSTRUCTION_RE = new RegExp(
-  `(?<!${WORD_CHAR})(?:i want|i need|i would like|can you|could you|let'?s|` +
-    `we (?:should|want|need)|please|make sure|instead of|proceed|continue)` +
-    `(?!${WORD_CHAR})`,
-  "giu",
-);
-
-// ASCII letters plus apostrophe, on lowercased text — the scorer's tokenizer.
-// (Distinct from the lib's `latinLowerWords`, which excludes the apostrophe, so
-// it cannot be reused here without changing the token boundaries.)
-const SCORE_TOKEN_RE = /[a-zA-Z']+/g;
-
-interface Scores {
-  technical: number;
-  informal: number;
-  editorial: number;
-}
-
-function scores(text: string): Scores {
-  const wordToks = text.toLowerCase().match(SCORE_TOKEN_RE) ?? [];
-  if (wordToks.length === 0) {
-    return { technical: 0.0, informal: 0.0, editorial: 0.0 };
-  }
-  const n = wordToks.length;
-
-  const sentences = text.split(/[.!?\n]+/).filter((s) => s.trim().length > 0);
-  const nSent = Math.max(sentences.length, 1);
-
-  // Distinct first-words across sentences (a set, as in the reference).
-  const firstWords = new Set<string>();
-  for (const s of sentences) {
-    const toks = s.toLowerCase().match(SCORE_TOKEN_RE);
-    if (toks && toks.length > 0) firstWords.add(toks[0]!);
-  }
-
-  let techCount = 0;
-  let casualCount = 0;
-  let discourseCount = 0;
-  for (const w of wordToks) {
-    if (TECH_NOUNS.has(w)) techCount++;
-    if (CASUAL_TOKENS.has(w)) casualCount++;
-    if (DISCOURSE.has(w)) discourseCount++;
-  }
-
-  const techDensity = techCount / n;
-  const instr = (text.match(SCORES_INSTRUCTION_RE) ?? []).length / nSent;
-  let imperCount = 0;
-  for (const fw of firstWords) if (IMPERATIVES.has(fw)) imperCount++;
-  const imper = imperCount / nSent;
-
-  const tech = techDensity * 6 + instr * 1.5 + imper * 2;
-  const informal = (casualCount / n) * 8 + (n < 8 ? 0.3 : 0);
-  const editorial =
-    (discourseCount / n) * 5 +
-    (sentences.length >= 4 ? 0.4 : 0) +
-    (n > 80 ? 0.3 : 0) -
-    techDensity * 4 -
-    instr * 1.0 -
-    imper * 1.5;
-
-  return {
-    technical: pyRound(tech, 3),
-    informal: pyRound(informal, 3),
-    editorial: pyRound(Math.max(editorial, 0.0), 3),
-  };
-}
-
 /**
  * Reduce a score set to the output register string. Argmax over the rounded
  * scores in insertion order (technical, informal, editorial) so ties resolve to
@@ -202,7 +102,7 @@ function scores(text: string): Scores {
  * is not positive, default to technical (the corpus's nature). "technical" is
  * then emitted as "technical-instruction".
  */
-function registerFor(s: Scores): string {
+function registerFor(s: RegisterScores): string {
   let bestKey = "technical";
   let bestVal = s.technical;
   if (s.informal > bestVal) {
