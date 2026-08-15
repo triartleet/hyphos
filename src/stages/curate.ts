@@ -113,13 +113,16 @@ export function runCurate(argv: string[]): number {
 
   const curatedPath = path.join(corpus, "curated.jsonl");
   const quarantinePath = path.join(corpus, "quarantine.jsonl");
+  const aiMarkedPath = path.join(corpus, "ai-marked.jsonl");
   const curatedLines: string[] = [];
   const quarantineLines: string[] = [];
+  const aiMarkedLines: string[] = [];
   let kept = 0;
   let keptWords = 0;
   let quarantined = 0;
   let qWords = 0;
   let droppedEmpty = 0;
+  let aiMarked = 0;
 
   for (const line of readLines(src)) {
     const o = JSON.parse(line) as Record<string, unknown>;
@@ -142,6 +145,22 @@ export function runCurate(argv: string[]): number {
     // Reassigning `text`/`words` keeps their original position (both Python dict
     // and JS object semantics); `raw_words` is appended last.
     const rec = { ...o, text: stripped, words: wordCount, raw_words: o.words };
+    // Deliberate divergence from the reference script: a message carrying an
+    // em-dash is excluded from the voice corpus entirely. The owner's typed
+    // baseline measures ~0 of them per 1k words (see profiles/model-isms.md),
+    // so a message that contains one is pasted or AI-influenced text riding in
+    // a user turn — under the length ceiling it would otherwise pass straight
+    // into the fingerprints. Measured before this guard existed: 121 of 3065
+    // curated messages carried them, concentrated in one register bucket at
+    // 20% of its rows and ~44% of its words. These rows go to their own file,
+    // never to quarantine, so the salvage pass cannot recycle them.
+    if (stripped.includes("—")) {
+      aiMarkedLines.push(
+        JSON.stringify({ ...rec, excluded: "ai-marker-emdash" }) + "\n",
+      );
+      aiMarked++;
+      continue;
+    }
     const encoded = JSON.stringify(rec) + "\n";
     if (wordCount <= MAX_TYPED_WORDS) {
       curatedLines.push(encoded);
@@ -154,16 +173,18 @@ export function runCurate(argv: string[]): number {
     }
   }
 
-  // Both files are (re)created even when empty, matching the reference's
+  // All output files are (re)created even when empty, matching the reference's
   // `open("w")` truncation.
   fs.writeFileSync(curatedPath, curatedLines.join(""));
   fs.writeFileSync(quarantinePath, quarantineLines.join(""));
+  fs.writeFileSync(aiMarkedPath, aiMarkedLines.join(""));
 
   const statsPath = path.join(corpus, "stats-curated.md");
   const stats =
     "# Curated corpus stats (local-only)\n\n" +
     `Kept: ${kept} messages, ${keptWords} words (typed voice)\n` +
     `Quarantined (>${MAX_TYPED_WORDS}w post-strip): ${quarantined} messages, ${qWords} words\n` +
+    `AI-marked (em-dash carrier, excluded from voice): ${aiMarked} messages\n` +
     `Dropped (empty after stripping): ${droppedEmpty}\n`;
   fs.writeFileSync(statsPath, stats);
 
@@ -171,6 +192,7 @@ export function runCurate(argv: string[]): number {
   process.stdout.write(
     `quarantined: ${quarantined} messages (${qWords} words)\n`,
   );
+  process.stdout.write(`ai-marked (excluded from voice): ${aiMarked}\n`);
   process.stdout.write(`dropped empty after strip: ${droppedEmpty}\n`);
   return 0;
 }

@@ -96,6 +96,12 @@ function salvage(text: string): string | null {
     kept.push(paras[paras.length - 1]!);
   }
   const out = kept.join("\n\n");
+  // Same guard as the curate stage, applied to the recovered fragment: the
+  // owner's typed baseline has ~0 em-dashes per 1k words, and the quarantined
+  // messages this pass mines are exactly where pasted AI text lives (measured
+  // before the guard: 17 of 44 salvaged rows carried one). Never recover such
+  // a fragment as "typed".
+  if (out.includes("—")) return null;
   return whitespaceSplit(out).length >= 8 ? out : null;
 }
 
@@ -166,9 +172,11 @@ export function runSalvage(argv: string[]): number {
   const outPath = path.join(corpus, "salvaged.jsonl");
   let kept = 0;
   let keptWords = 0;
+  let qCount = 0;
   const lines: string[] = [];
 
   for (const o of readJsonl(qPath)) {
+    qCount += 1;
     const frag = salvage(o["text"] as string);
     if (!frag || seen.has(frag)) continue;
     seen.add(frag);
@@ -190,11 +198,13 @@ export function runSalvage(argv: string[]): number {
 
   fs.writeFileSync(outPath, lines.map((l) => l + "\n").join(""));
 
-  // Aggregate-only stdout. The "268-message" figure is a hardcoded literal in the
-  // reference (not the live quarantine count); it is reproduced verbatim for
-  // output parity.
+  // Aggregate-only stdout. The reference hardcoded its quarantine count as a
+  // "268-message" literal; that was tolerable while quarantine was static, but
+  // the em-dash guard upstream now changes its size on every curate run, so
+  // the live count is printed instead (deliberate divergence, same change as
+  // the guard itself).
   process.stdout.write(
-    `salvaged: ${kept} fragments, ${keptWords} words (from 268-message quarantine)\n`,
+    `salvaged: ${kept} fragments, ${keptWords} words (from ${qCount}-message quarantine)\n`,
   );
   return 0;
 }
