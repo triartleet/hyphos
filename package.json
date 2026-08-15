@@ -21,7 +21,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "prepare": "npm run build",
-    "doctor": "npx dokimd --manifest dokimd.json --config-dir \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"",
+    "doctor": "npx peirad --manifest peirad.json --config-dir \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"",
     "prepublishOnly": "./scripts/artifact-check.sh",
     "changeset": "changeset",
     "version:packages": "changeset version"

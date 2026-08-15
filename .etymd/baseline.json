@@ -1,18 +1,18 @@
 {
   "packVersion": "7",
   "etymdVersion": "0.10.0",
-  "approvedAt": "2026-08-15T15:51:06.283Z",
+  "approvedAt": "2026-08-15T19:07:31.943Z",
   "profile": "solo",
   "facts": {
     "etymdVersion": "0.10.0",
     "packVersion": "7",
-    "generatedAt": "2026-08-15T15:51:06.279Z",
+    "generatedAt": "2026-08-15T19:07:31.941Z",
     "root": ".",
     "name": "hyphos",
     "git": {
       "isRepo": true,
       "branch": "main",
-      "head": "de1b889",
+      "head": "7f62d72",
       "hooksPath": ".githooks",
       "husky": false,
       "recentAuthors": 1
@@ -37,8 +37,10 @@
         "format": "prettier --write .",
         "format:check": "prettier --check .",
         "prepare": "npm run build",
-        "doctor": "npx dokimd --manifest doctor.json --config-dir \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"",
-        "prepublishOnly": "./scripts/artifact-check.sh"
+        "doctor": "npx peirad --manifest peirad.json --config-dir \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"",
+        "prepublishOnly": "./scripts/artifact-check.sh",
+        "changeset": "changeset",
+        "version:packages": "changeset version"
       },
       "formatCheck": "format:check",
       "typecheck": "typecheck",
@@ -199,15 +201,15 @@
       }
     ],
     "shell": {
-      "scripts": 3
+      "scripts": 4
     },
     "freshness": {
-      "repoLastCommit": "2026-08-15T15:18:08+02:00",
+      "repoLastCommit": "2026-08-15T21:07:00+02:00",
       "artifacts": [
         {
           "artifactId": "decisions",
           "path": "DECISIONS.md",
-          "lastCommit": "2026-08-15T09:06:28+02:00",
+          "lastCommit": "2026-08-15T20:21:11+02:00",
           "commitsSince": true
         }
       ],
@@ -242,6 +244,10 @@
         {
           "name": "test",
           "files": 3
+        },
+        {
+          "name": ".changeset",
+          "files": 2
         },
         {
           "name": "media",
