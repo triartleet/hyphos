@@ -22,7 +22,9 @@
     "format:check": "prettier --check .",
     "prepare": "npm run build",
     "doctor": "npx dokimd --manifest dokimd.json --config-dir \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"",
-    "prepublishOnly": "./scripts/artifact-check.sh"
+    "prepublishOnly": "./scripts/artifact-check.sh",
+    "changeset": "changeset",
+    "version:packages": "changeset version"
   },
   "keywords": [
     "writing",
@@ -43,6 +45,7 @@
     "picocolors": "1.1.1"
   },
   "devDependencies": {
+    "@changesets/cli": "^3.0.0",
     "@types/adm-zip": "0.5.7",
     "@types/mailparser": "3.4.5",
     "@types/node": "22.10.2",
