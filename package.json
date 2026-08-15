@@ -1,0 +1,53 @@
+{
+  "name": "hyphos",
+  "version": "0.1.0",
+  "description": "Rewrite any AI draft so it reads as written by you — register-aware voice profiles built from your own writing, with deterministic quirk enforcement and a fidelity score.",
+  "type": "module",
+  "bin": {
+    "hyphos": "./dist/cli.js"
+  },
+  "main": "./dist/index.js",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "start": "node dist/cli.js",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "parity": "node --import tsx parity/run.ts",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "prepare": "npm run build"
+  },
+  "keywords": [
+    "writing",
+    "voice",
+    "stylometry",
+    "rewrite",
+    "personal-voice",
+    "local-first"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.17"
+  },
+  "dependencies": {
+    "adm-zip": "0.5.16",
+    "commander": "12.1.0",
+    "mailparser": "3.7.1",
+    "picocolors": "1.1.1"
+  },
+  "devDependencies": {
+    "@types/adm-zip": "0.5.7",
+    "@types/mailparser": "3.4.5",
+    "@types/node": "22.10.2",
+    "prettier": "3.4.2",
+    "tsup": "8.3.5",
+    "tsx": "4.19.2",
+    "typescript": "5.7.2",
+    "vitest": "2.1.8"
+  }
+}

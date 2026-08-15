@@ -1,16 +1,21 @@
 # hyphos
 
-*ύφος — Greek for the style and tone of one's expression.*
+_ύφος — Greek for the style and tone of one's expression._
 
 Rewrite any AI draft so it reads as written by **you**. hyphos builds
 register-aware voice profiles from your own writing — chat transcripts, exports,
 posts — preserves your quirk-level habits with enforcement rules a model can't
 drift away from, and scores every output for how much it actually sounds like you.
 
-**Status: early.** Stage 0 (corpus extraction) works today; profiles, rewrite, and
-the fidelity score are in progress — see `ROADMAP.md`.
+This is the Node/TypeScript implementation, distributed on npm and runnable with
+`npx`. It is a parity port of the original Python tool: same measurements, same
+outputs, verified against the reference stage by stage.
 
-## What it will do
+**Status: early.** Corpus extraction, curation, register tagging, chat/email
+ingest and stylometric fingerprints work today; the rewrite backend and the
+fidelity score are in progress.
+
+## What it does
 
 - **Voice profiles, per register** — you don't have one voice; you have modes
   (technical, informal, editorial). hyphos profiles each: a stylometric
@@ -19,34 +24,43 @@ the fidelity score are in progress — see `ROADMAP.md`.
 - **Rewrite** — feed it any AI-generated draft and a target register; it rewrites
   the draft in your voice.
 - **Hard quirk enforcement** — mechanical habits (punctuation policy, banned
-  words, casing) are applied *after* the model as deterministic rules, because
+  words, casing) are applied _after_ the model as deterministic rules, because
   models normalize personal quirks away and drift from style instructions as
   context grows.
 - **A fidelity score** — every output gets a "how-much-like-you" number
-  (stylometric match + a judge rubric), calibrated by blind self-tests: it shows
-  you snippets and asks which ones you actually wrote.
+  (stylometric match plus a judge rubric), calibrated by blind self-tests.
 
-## Quick start (what works today)
-
-Extract your own messages from your Claude Code transcripts:
+## Quick start
 
 ```sh
-python3 bin/extract_corpus.py            # reads ~/.claude/projects
-python3 bin/extract_corpus.py /path/dir  # or any transcript directory
+npx hyphos extract            # extract your own messages from local transcripts
+npx hyphos fingerprint        # compute stylometric fingerprints per register
+npx hyphos rules --test       # self-test the deterministic enforcement rules
 ```
 
-`CLAUDE_CONFIG_DIR` is honored if set. Output lands in `corpus/` (gitignored).
-Stdout prints aggregate numbers only — no project names, safe to share.
+Corpus output lands in `corpus/` and profiles in `profiles/` (both under the
+current directory; override with `HYPHOS_CORPUS` / `HYPHOS_PROFILES`). Stdout
+prints aggregate numbers only — never your text — so it is safe to share.
 
-Self-test the adaptation rules any time: `bin/hyphos rules --test`.
+## Non-English writing
+
+Writing in another language (including Greeklish — Greek written in Latin
+characters) contributes rhythm, register and punctuation habits, tagged as such.
+It is never mined for word choice and never transliterated.
 
 ## Privacy by design
 
 Your corpus and profiles never leave your machine: `corpus/` and `profiles/` are
-gitignored, nothing is transmitted anywhere, and model calls (when the rewrite
-stage lands) use your own API key.
+gitignored, nothing is transmitted anywhere, and model calls (for the rewrite
+stage) use your own credentials.
 
----
+## Development
 
-Roadmap: `ROADMAP.md` · Decisions: `DECISIONS.md` · Internals: `docs/design.md` ·
-License: MIT
+```sh
+npm install
+npm test          # unit + parity-anchor tests
+npm run build     # bundle to dist/ (the published CLI)
+npm run parity    # diff outputs against a reference implementation (see parity/)
+```
+
+License: MIT.
