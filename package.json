@@ -20,7 +20,9 @@
     "parity": "node --import tsx parity/run.ts",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "prepare": "npm run build"
+    "prepare": "npm run build",
+    "doctor": "npx dokimd --manifest dokimd.json --config-dir \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"",
+    "prepublishOnly": "./scripts/artifact-check.sh"
   },
   "keywords": [
     "writing",

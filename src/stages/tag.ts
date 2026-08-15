@@ -23,29 +23,127 @@ import { pyRound } from "../lib/num.js";
 import { corpusDir } from "../lib/paths.js";
 
 const IMPERATIVES = new Set([
-  "add", "build", "change", "check", "clean", "close", "commit", "compare",
-  "continue", "create", "delete", "deploy", "do", "ensure", "explain", "find",
-  "fix", "generate", "give", "go", "implement", "install", "investigate",
-  "keep", "list", "load", "make", "move", "open", "please", "proceed", "push",
-  "read", "record", "refactor", "remove", "rename", "rerun", "resume", "run",
-  "search", "show", "start", "stop", "test", "try", "update", "use", "verify",
+  "add",
+  "build",
+  "change",
+  "check",
+  "clean",
+  "close",
+  "commit",
+  "compare",
+  "continue",
+  "create",
+  "delete",
+  "deploy",
+  "do",
+  "ensure",
+  "explain",
+  "find",
+  "fix",
+  "generate",
+  "give",
+  "go",
+  "implement",
+  "install",
+  "investigate",
+  "keep",
+  "list",
+  "load",
+  "make",
+  "move",
+  "open",
+  "please",
+  "proceed",
+  "push",
+  "read",
+  "record",
+  "refactor",
+  "remove",
+  "rename",
+  "rerun",
+  "resume",
+  "run",
+  "search",
+  "show",
+  "start",
+  "stop",
+  "test",
+  "try",
+  "update",
+  "use",
+  "verify",
   "write",
 ]);
 const TECH_NOUNS = new Set([
-  "agent", "api", "branch", "bug", "build", "cli", "code", "commit", "config",
-  "deploy", "endpoint", "error", "file", "flag", "function", "hook", "log",
-  "merge", "pipeline", "pr", "repo", "script", "session", "test", "token",
-  "typescript", "ui", "workflow",
+  "agent",
+  "api",
+  "branch",
+  "bug",
+  "build",
+  "cli",
+  "code",
+  "commit",
+  "config",
+  "deploy",
+  "endpoint",
+  "error",
+  "file",
+  "flag",
+  "function",
+  "hook",
+  "log",
+  "merge",
+  "pipeline",
+  "pr",
+  "repo",
+  "script",
+  "session",
+  "test",
+  "token",
+  "typescript",
+  "ui",
+  "workflow",
 ]);
 const CASUAL_TOKENS = new Set([
-  "ah", "btw", "cool", "haha", "hey", "hm", "hmm", "lol", "nah", "nope",
-  "ok", "okay", "oops", "pls", "r", "thanks", "thx", "u", "wanna", "wtf",
-  "yeah", "yep",
+  "ah",
+  "btw",
+  "cool",
+  "haha",
+  "hey",
+  "hm",
+  "hmm",
+  "lol",
+  "nah",
+  "nope",
+  "ok",
+  "okay",
+  "oops",
+  "pls",
+  "r",
+  "thanks",
+  "thx",
+  "u",
+  "wanna",
+  "wtf",
+  "yeah",
+  "yep",
 ]);
 const DISCOURSE = new Set([
-  "actually", "although", "besides", "however", "indeed", "instead",
-  "moreover", "nevertheless", "overall", "rather", "therefore", "though",
-  "ultimately", "whereas", "while",
+  "actually",
+  "although",
+  "besides",
+  "however",
+  "indeed",
+  "instead",
+  "moreover",
+  "nevertheless",
+  "overall",
+  "rather",
+  "therefore",
+  "though",
+  "ultimately",
+  "whereas",
+  "while",
 ]);
 
 // `\b(...)\b` from the reference. JS `\b` is ASCII-only, so the word boundaries
@@ -78,7 +176,9 @@ export function scores(text: string): RegisterScores {
     return { technical: 0.0, informal: 0.0, editorial: 0.0 };
   }
   const n = wordsList.length;
-  const sentences = text.split(SENTENCE_SPLIT_RE).filter((s) => s.trim().length > 0);
+  const sentences = text
+    .split(SENTENCE_SPLIT_RE)
+    .filter((s) => s.trim().length > 0);
   const nSent = Math.max(sentences.length, 1);
 
   // Unique first word of each sentence (a `set` in the reference).
@@ -135,7 +235,9 @@ export function runTag(argv: string[]): number {
   const corpus = corpusDir();
   const src = path.join(corpus, "curated.jsonl");
   if (!fs.existsSync(src) || !fs.statSync(src).isFile()) {
-    process.stderr.write("missing curated.jsonl — run curate_corpus.py first\n");
+    process.stderr.write(
+      "missing curated.jsonl — run curate_corpus.py first\n",
+    );
     return 1;
   }
 
@@ -176,7 +278,9 @@ export function runTag(argv: string[]): number {
   for (const [reg, c] of dist.mostCommon()) {
     // `f"{100*c/total:.0f}"` uses round-half-to-even, so route through pyRound.
     const pct = String(pyRound((100 * c) / total, 0));
-    process.stdout.write(`${reg}: ${c} msgs (${pct}%), ${wordDist.get(reg)} words\n`);
+    process.stdout.write(
+      `${reg}: ${c} msgs (${pct}%), ${wordDist.get(reg)} words\n`,
+    );
   }
   process.stdout.write(`total: ${total}\n`);
   return 0;

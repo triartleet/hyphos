@@ -48,7 +48,11 @@ import { corpusDir } from "../lib/paths.js";
 // decoder mailparser itself uses; it reproduces Python's `bytes.decode(charset,
 // errors="replace")` (including the U+FFFD replacements) for every charset here.
 const iconv = createRequire(import.meta.url)("iconv-lite") as {
-  decode(buf: Buffer, encoding: string, options?: { stripBOM?: boolean }): string;
+  decode(
+    buf: Buffer,
+    encoding: string,
+    options?: { stripBOM?: boolean },
+  ): string;
   encodingExists(encoding: string): boolean;
 };
 
@@ -79,43 +83,151 @@ const BOUNCE_RE =
 // only affects html-only messages, so it is scoped narrowly — flagged for the
 // harness.
 const CP1252: Record<number, string> = {
-  0x80: "€", 0x82: "‚", 0x83: "ƒ", 0x84: "„", 0x85: "…",
-  0x86: "†", 0x87: "‡", 0x88: "ˆ", 0x89: "‰", 0x8a: "Š",
-  0x8b: "‹", 0x8c: "Œ", 0x8e: "Ž", 0x91: "‘", 0x92: "’",
-  0x93: "“", 0x94: "”", 0x95: "•", 0x96: "–", 0x97: "—",
-  0x98: "˜", 0x99: "™", 0x9a: "š", 0x9b: "›", 0x9c: "œ",
-  0x9e: "ž", 0x9f: "Ÿ",
+  0x80: "€",
+  0x82: "‚",
+  0x83: "ƒ",
+  0x84: "„",
+  0x85: "…",
+  0x86: "†",
+  0x87: "‡",
+  0x88: "ˆ",
+  0x89: "‰",
+  0x8a: "Š",
+  0x8b: "‹",
+  0x8c: "Œ",
+  0x8e: "Ž",
+  0x91: "‘",
+  0x92: "’",
+  0x93: "“",
+  0x94: "”",
+  0x95: "•",
+  0x96: "–",
+  0x97: "—",
+  0x98: "˜",
+  0x99: "™",
+  0x9a: "š",
+  0x9b: "›",
+  0x9c: "œ",
+  0x9e: "ž",
+  0x9f: "Ÿ",
 };
 const NAMED: Record<string, string> = {
-  amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: " ",
-  copy: "©", reg: "®", trade: "™", hellip: "…",
-  mdash: "—", ndash: "–", lsquo: "‘", rsquo: "’",
-  ldquo: "“", rdquo: "”", laquo: "«", raquo: "»",
-  bull: "•", middot: "·", deg: "°", plusmn: "±",
-  times: "×", divide: "÷", frac12: "½", frac14: "¼",
-  frac34: "¾", sup1: "¹", sup2: "²", sup3: "³",
-  micro: "µ", para: "¶", sect: "§", dagger: "†",
-  Dagger: "‡", permil: "‰", prime: "′", Prime: "″",
-  euro: "€", pound: "£", yen: "¥", cent: "¢",
-  curren: "¤", brvbar: "¦", uml: "¨", ordf: "ª",
-  not: "¬", shy: "­", macr: "¯", acute: "´",
-  cedil: "¸", ordm: "º", iquest: "¿", iexcl: "¡",
-  Agrave: "À", Aacute: "Á", Acirc: "Â", Atilde: "Ã",
-  Auml: "Ä", Aring: "Å", AElig: "Æ", Ccedil: "Ç",
-  Egrave: "È", Eacute: "É", Ecirc: "Ê", Euml: "Ë",
-  Igrave: "Ì", Iacute: "Í", Icirc: "Î", Iuml: "Ï",
-  ETH: "Ð", Ntilde: "Ñ", Ograve: "Ò", Oacute: "Ó",
-  Ocirc: "Ô", Otilde: "Õ", Ouml: "Ö", Oslash: "Ø",
-  Ugrave: "Ù", Uacute: "Ú", Ucirc: "Û", Uuml: "Ü",
-  Yacute: "Ý", THORN: "Þ", szlig: "ß", agrave: "à",
-  aacute: "á", acirc: "â", atilde: "ã", auml: "ä",
-  aring: "å", aelig: "æ", ccedil: "ç", egrave: "è",
-  eacute: "é", ecirc: "ê", euml: "ë", igrave: "ì",
-  iacute: "í", icirc: "î", iuml: "ï", eth: "ð",
-  ntilde: "ñ", ograve: "ò", oacute: "ó", ocirc: "ô",
-  otilde: "õ", ouml: "ö", oslash: "ø", ugrave: "ù",
-  uacute: "ú", ucirc: "û", uuml: "ü", yacute: "ý",
-  thorn: "þ", yuml: "ÿ",
+  amp: "&",
+  lt: "<",
+  gt: ">",
+  quot: '"',
+  apos: "'",
+  nbsp: " ",
+  copy: "©",
+  reg: "®",
+  trade: "™",
+  hellip: "…",
+  mdash: "—",
+  ndash: "–",
+  lsquo: "‘",
+  rsquo: "’",
+  ldquo: "“",
+  rdquo: "”",
+  laquo: "«",
+  raquo: "»",
+  bull: "•",
+  middot: "·",
+  deg: "°",
+  plusmn: "±",
+  times: "×",
+  divide: "÷",
+  frac12: "½",
+  frac14: "¼",
+  frac34: "¾",
+  sup1: "¹",
+  sup2: "²",
+  sup3: "³",
+  micro: "µ",
+  para: "¶",
+  sect: "§",
+  dagger: "†",
+  Dagger: "‡",
+  permil: "‰",
+  prime: "′",
+  Prime: "″",
+  euro: "€",
+  pound: "£",
+  yen: "¥",
+  cent: "¢",
+  curren: "¤",
+  brvbar: "¦",
+  uml: "¨",
+  ordf: "ª",
+  not: "¬",
+  shy: "­",
+  macr: "¯",
+  acute: "´",
+  cedil: "¸",
+  ordm: "º",
+  iquest: "¿",
+  iexcl: "¡",
+  Agrave: "À",
+  Aacute: "Á",
+  Acirc: "Â",
+  Atilde: "Ã",
+  Auml: "Ä",
+  Aring: "Å",
+  AElig: "Æ",
+  Ccedil: "Ç",
+  Egrave: "È",
+  Eacute: "É",
+  Ecirc: "Ê",
+  Euml: "Ë",
+  Igrave: "Ì",
+  Iacute: "Í",
+  Icirc: "Î",
+  Iuml: "Ï",
+  ETH: "Ð",
+  Ntilde: "Ñ",
+  Ograve: "Ò",
+  Oacute: "Ó",
+  Ocirc: "Ô",
+  Otilde: "Õ",
+  Ouml: "Ö",
+  Oslash: "Ø",
+  Ugrave: "Ù",
+  Uacute: "Ú",
+  Ucirc: "Û",
+  Uuml: "Ü",
+  Yacute: "Ý",
+  THORN: "Þ",
+  szlig: "ß",
+  agrave: "à",
+  aacute: "á",
+  acirc: "â",
+  atilde: "ã",
+  auml: "ä",
+  aring: "å",
+  aelig: "æ",
+  ccedil: "ç",
+  egrave: "è",
+  eacute: "é",
+  ecirc: "ê",
+  euml: "ë",
+  igrave: "ì",
+  iacute: "í",
+  icirc: "î",
+  iuml: "ï",
+  eth: "ð",
+  ntilde: "ñ",
+  ograve: "ò",
+  oacute: "ó",
+  ocirc: "ô",
+  otilde: "õ",
+  ouml: "ö",
+  oslash: "ø",
+  ugrave: "ù",
+  uacute: "ú",
+  ucirc: "û",
+  uuml: "ü",
+  yacute: "ý",
+  thorn: "þ",
+  yuml: "ÿ",
 };
 
 function charFromNum(num: number): string {
@@ -142,7 +254,8 @@ function htmlUnescape(s: string): string {
         return charFromNum(num);
       }
       const name = ref.replace(/;$/, "");
-      if (Object.prototype.hasOwnProperty.call(NAMED, name)) return NAMED[name]!;
+      if (Object.prototype.hasOwnProperty.call(NAMED, name))
+        return NAMED[name]!;
       return m; // unknown entity: leave verbatim (as Python does for non-matches)
     },
   );
@@ -176,7 +289,8 @@ function htmlToText(markup: string): string {
 // strips the C1/ASCII separators \x1c–\x1f and NEL \x85 (JS does not), and Python
 // does NOT strip U+FEFF (the BOM), which JS `trim()` removes. A leading BOM must
 // survive into the record text to match the reference.
-const PY_WS = "\\t\\n\\v\\f\\r\\x1c\\x1d\\x1e\\x1f \\x85\\xa0\\u1680\\u2000-\\u200a\\u2028\\u2029\\u202f\\u205f\\u3000";
+const PY_WS =
+  "\\t\\n\\v\\f\\r\\x1c\\x1d\\x1e\\x1f \\x85\\xa0\\u1680\\u2000-\\u200a\\u2028\\u2029\\u202f\\u205f\\u3000";
 const PY_LSTRIP_RE = new RegExp(`^[${PY_WS}]+`);
 const PY_STRIP_RE = new RegExp(`^[${PY_WS}]+|[${PY_WS}]+$`, "g");
 const pyStrip = (s: string): string => s.replace(PY_STRIP_RE, "");
@@ -208,15 +322,47 @@ function clean(textIn: string): string {
 // with its raise→raw fallback, verified against the reference corpus (e.g. a raw
 // "Thu, 4 Jun 2026 …" is emitted as "Thu, 04 Jun 2026 …").
 const DATE_MONTHS: Record<string, number> = {
-  jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5,
-  jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11,
+  jan: 0,
+  feb: 1,
+  mar: 2,
+  apr: 3,
+  may: 4,
+  jun: 5,
+  jul: 6,
+  aug: 7,
+  sep: 8,
+  oct: 9,
+  nov: 10,
+  dec: 11,
 };
-const DATE_MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const DATE_MON = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+];
 const DATE_WD = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]; // Date.getUTCDay(): 0=Sun
 const DATE_ZONES: Record<string, string> = {
-  ut: "+0000", utc: "+0000", gmt: "+0000", z: "+0000",
-  est: "-0500", edt: "-0400", cst: "-0600", cdt: "-0500",
-  mst: "-0700", mdt: "-0600", pst: "-0800", pdt: "-0700",
+  ut: "+0000",
+  utc: "+0000",
+  gmt: "+0000",
+  z: "+0000",
+  est: "-0500",
+  edt: "-0400",
+  cst: "-0600",
+  cdt: "-0500",
+  mst: "-0700",
+  mdt: "-0600",
+  pst: "-0800",
+  pdt: "-0700",
 };
 const RFC5322_RE =
   /^\s*(?:[A-Za-z]+\s*,\s*)?(\d{1,2})\s+([A-Za-z]{3})[A-Za-z]*\s+(\d{2,4})\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?\s+([+-]\d{4}|[A-Za-z]+)/;
@@ -241,7 +387,11 @@ function formatEmailDate(raw: string): string {
     zone = z;
   }
   const dt = new Date(Date.UTC(year, mon, day));
-  if (dt.getUTCFullYear() !== year || dt.getUTCMonth() !== mon || dt.getUTCDate() !== day) {
+  if (
+    dt.getUTCFullYear() !== year ||
+    dt.getUTCMonth() !== mon ||
+    dt.getUTCDate() !== day
+  ) {
     return raw; // calendar overflow (e.g. Feb 31): datetime() would raise → raw
   }
   return `${DATE_WD[dt.getUTCDay()]}, ${pad2(day)} ${DATE_MON[mon]} ${year} ${pad2(hh)}:${pad2(mm)}:${pad2(ss)} ${zone}`;
@@ -274,7 +424,10 @@ interface MimeNode {
 }
 
 /** Split "value; k=v; k2=\"v2\"" into a bare value plus lowercased params. */
-function parseParams(raw: string): { value: string; params: Record<string, string> } {
+function parseParams(raw: string): {
+  value: string;
+  params: Record<string, string>;
+} {
   const params: Record<string, string> = {};
   const segs: string[] = [];
   let cur = "";
@@ -293,7 +446,8 @@ function parseParams(raw: string): { value: string; params: Record<string, strin
     if (eq < 0) continue;
     const k = seg.slice(0, eq).trim().toLowerCase();
     let v = seg.slice(eq + 1).trim();
-    if (v.startsWith('"') && v.endsWith('"') && v.length >= 2) v = v.slice(1, -1);
+    if (v.startsWith('"') && v.endsWith('"') && v.length >= 2)
+      v = v.slice(1, -1);
     if (k) params[k] = v;
   }
   return { value, params };
@@ -353,7 +507,12 @@ function parseHeaders(
 /** Split a multipart body [start,end) into child [start,end) ranges on `boundary`,
  *  matching RFC 2046 / Python's parser: the CRLF preceding a delimiter belongs to
  *  the delimiter, so it is excluded from the preceding part. */
-function splitParts(buf: Buffer, start: number, end: number, boundary: string): [number, number][] {
+function splitParts(
+  buf: Buffer,
+  start: number,
+  end: number,
+  boundary: string,
+): [number, number][] {
   const open = "--" + boundary;
   const close = open + "--";
   const parts: [number, number][] = [];
@@ -386,7 +545,10 @@ function splitParts(buf: Buffer, start: number, end: number, boundary: string): 
   return parts;
 }
 
-function firstHeader(headers: Map<string, string[]>, key: string): string | undefined {
+function firstHeader(
+  headers: Map<string, string[]>,
+  key: string,
+): string | undefined {
   return headers.get(key)?.[0];
 }
 
@@ -401,7 +563,9 @@ function parseNode(buf: Buffer, start: number, end: number): MimeNode {
     charset: ct.params["charset"],
     boundary: ct.params["boundary"],
     startParam: ct.params["start"],
-    cte: (firstHeader(headers, "content-transfer-encoding") ?? "").trim().toLowerCase(),
+    cte: (firstHeader(headers, "content-transfer-encoding") ?? "")
+      .trim()
+      .toLowerCase(),
     disposition,
     contentId: firstHeader(headers, "content-id"),
     isMultipart: false,
@@ -411,7 +575,9 @@ function parseNode(buf: Buffer, start: number, end: number): MimeNode {
   };
   if (contentType.startsWith("multipart/") && node.boundary) {
     node.isMultipart = true;
-    node.parts = splitParts(buf, bodyStart, end, node.boundary).map(([s, e]) => parseNode(buf, s, e));
+    node.parts = splitParts(buf, bodyStart, end, node.boundary).map(([s, e]) =>
+      parseNode(buf, s, e),
+    );
   }
   return node;
 }
@@ -431,7 +597,8 @@ function getBody(root: MimeNode): MimeNode | null {
   const walk = (node: MimeNode): void => {
     if (isAttachment(node)) return;
     const slash = node.contentType.indexOf("/");
-    const maintype = slash >= 0 ? node.contentType.slice(0, slash) : node.contentType;
+    const maintype =
+      slash >= 0 ? node.contentType.slice(0, slash) : node.contentType;
     const subtype = slash >= 0 ? node.contentType.slice(slash + 1) : "";
     if (maintype === "text") {
       const idx = pref.indexOf(subtype);
@@ -446,7 +613,8 @@ function getBody(root: MimeNode): MimeNode | null {
     // multipart/related: "related" is not in our preferencelist, so only recurse
     // into the root part (the "start" part, else the first).
     let candidate: MimeNode | undefined;
-    if (node.startParam) candidate = node.parts.find((p) => p.contentId === node.startParam);
+    if (node.startParam)
+      candidate = node.parts.find((p) => p.contentId === node.startParam);
     if (!candidate) candidate = node.parts[0];
     if (candidate) walk(candidate);
   };
@@ -468,8 +636,11 @@ function decodeQuotedPrintable(raw: Buffer): Buffer {
   const out: number[] = [];
   const n = raw.length;
   const isHex = (b: number): boolean =>
-    (b >= 0x30 && b <= 0x39) || (b >= 0x41 && b <= 0x46) || (b >= 0x61 && b <= 0x66);
-  const hv = (b: number): number => (b <= 0x39 ? b - 0x30 : b <= 0x46 ? b - 0x37 : b - 0x57);
+    (b >= 0x30 && b <= 0x39) ||
+    (b >= 0x41 && b <= 0x46) ||
+    (b >= 0x61 && b <= 0x66);
+  const hv = (b: number): number =>
+    b <= 0x39 ? b - 0x30 : b <= 0x46 ? b - 0x37 : b - 0x57;
   for (let i = 0; i < n; i++) {
     const c = raw[i]!;
     if (c === 0x3d) {
@@ -499,7 +670,8 @@ function decodeQuotedPrintable(raw: Buffer): Buffer {
 /** Port of `get_payload(decode=True)`: transfer-decode the leaf part to bytes. */
 function transferDecode(buf: Buffer, node: MimeNode): Buffer {
   const raw = buf.subarray(node.bodyStart, node.bodyEnd);
-  if (node.cte === "base64") return Buffer.from(raw.toString("latin1"), "base64");
+  if (node.cte === "base64")
+    return Buffer.from(raw.toString("latin1"), "base64");
   if (node.cte === "quoted-printable") return decodeQuotedPrintable(raw);
   return raw; // 7bit / 8bit / binary / none → raw bytes
 }
@@ -578,28 +750,33 @@ function splitMbox(buf: Buffer): [number, number][] {
 // This path only runs when *.olm files are present (none in the reference corpus).
 
 function xmlUnescape(s: string): string {
-  return s.replace(/&(#[0-9]+;|#[xX][0-9a-fA-F]+;|lt;|gt;|amp;|quot;|apos;)/g, (m, ref: string) => {
-    if (ref[0] === "#") {
-      const body = ref.slice(0, -1);
-      const num =
-        body[1] === "x" || body[1] === "X" ? parseInt(body.slice(2), 16) : parseInt(body.slice(1), 10);
-      return charFromNum(num);
-    }
-    switch (ref) {
-      case "lt;":
-        return "<";
-      case "gt;":
-        return ">";
-      case "amp;":
-        return "&";
-      case "quot;":
-        return '"';
-      case "apos;":
-        return "'";
-      default:
-        return m;
-    }
-  });
+  return s.replace(
+    /&(#[0-9]+;|#[xX][0-9a-fA-F]+;|lt;|gt;|amp;|quot;|apos;)/g,
+    (m, ref: string) => {
+      if (ref[0] === "#") {
+        const body = ref.slice(0, -1);
+        const num =
+          body[1] === "x" || body[1] === "X"
+            ? parseInt(body.slice(2), 16)
+            : parseInt(body.slice(1), 10);
+        return charFromNum(num);
+      }
+      switch (ref) {
+        case "lt;":
+          return "<";
+        case "gt;":
+          return ">";
+        case "amp;":
+          return "&";
+        case "quot;":
+          return '"';
+        case "apos;":
+          return "'";
+        default:
+          return m;
+      }
+    },
+  );
 }
 
 function readElementText(xml: string, pos: number): string {
@@ -719,7 +896,12 @@ function iterOlmMessages(inbox: string): OlmRow[] {
       const sender = olmField(xml, "SenderAddress").toLowerCase().trim();
       let body = olmField(xml, "CopyBody") || olmField(xml, "CopyHTMLBody");
       if (HTMLISH_RE.test(body.slice(0, 400))) body = htmlToText(body);
-      rows.push({ source: stem, sender, date: olmField(xml, "SentTime"), body });
+      rows.push({
+        source: stem,
+        sender,
+        date: olmField(xml, "SentTime"),
+        body,
+      });
     }
   }
   return rows;
@@ -767,7 +949,10 @@ function iterMboxes(inbox: string, extract: string): MboxSource[] {
       const low = name.toLowerCase();
       if (low.endsWith(".mbox") && low.includes("sent")) {
         fs.mkdirSync(extract, { recursive: true });
-        const target = path.join(extract, `${zStem}-${path.posix.basename(name)}`);
+        const target = path.join(
+          extract,
+          `${zStem}-${path.posix.basename(name)}`,
+        );
         if (!fs.existsSync(target)) fs.writeFileSync(target, entry.getData());
         out.push({ source: zStem, path: target });
       }
@@ -812,7 +997,15 @@ function writeRecords(
       skippedLocal++;
       continue;
     }
-    out.push(JSON.stringify({ ts, source: `email:${source}`, lang, words, text: chunk }) + "\n");
+    out.push(
+      JSON.stringify({
+        ts,
+        source: `email:${source}`,
+        lang,
+        words,
+        text: chunk,
+      }) + "\n",
+    );
     wordsByLang.set(lang, (wordsByLang.get(lang) ?? 0) + words);
     n++;
   }
@@ -909,7 +1102,13 @@ export function runIngestEmail(_argv: string[]): number {
         skipped++;
         continue;
       }
-      const r = writeRecords(outChunks, text, formatEmailDate(msgs[k]!.date), source, wordsByLang);
+      const r = writeRecords(
+        outChunks,
+        text,
+        formatEmailDate(msgs[k]!.date),
+        source,
+        wordsByLang,
+      );
       kept += r.n;
       skipped += r.skippedLocal;
     }

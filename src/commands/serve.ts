@@ -21,7 +21,12 @@ import path from "node:path";
 import { corpusDir } from "../lib/paths.js";
 import { pyDumps } from "./pyjson.js";
 import { SysExit } from "./sysexit.js";
-import { registersInfo, inferRegister, score, type ScoreResult } from "./score.js";
+import {
+  registersInfo,
+  inferRegister,
+  score,
+  type ScoreResult,
+} from "./score.js";
 import { rewrite, judge } from "./rewrite.js";
 import { enforce } from "./rules.js";
 
@@ -69,7 +74,11 @@ export function recordFeedback(entry: Record<string, unknown>): FeedbackResult {
   for (const line of fs.readFileSync(fb, "utf8").split("\n")) {
     if (line.length === 0) continue;
     const o = JSON.parse(line) as { register?: string; verdict?: string };
-    if (o.register === rec.register && o.verdict && (["good", "fine", "bad"] as string[]).includes(o.verdict)) {
+    if (
+      o.register === rec.register &&
+      o.verdict &&
+      (["good", "fine", "bad"] as string[]).includes(o.verdict)
+    ) {
       counts[o.verdict as Verdict]++;
     }
   }
@@ -101,7 +110,11 @@ function readBody(req: http.IncomingMessage): Promise<Buffer> {
   });
 }
 
-function handleGet(req: http.IncomingMessage, res: http.ServerResponse, web: string): void {
+function handleGet(
+  req: http.IncomingMessage,
+  res: http.ServerResponse,
+  web: string,
+): void {
   const urlPath = (req.url ?? "/").split("?")[0]!;
   const name = urlPath.replace(/^\/+/, "") || "index.html";
   const webResolved = path.resolve(web);
@@ -122,14 +135,22 @@ function handleGet(req: http.IncomingMessage, res: http.ServerResponse, web: str
   }
   const body = fs.readFileSync(resolved);
   const ctype = TYPES[path.extname(resolved)] ?? "application/octet-stream";
-  res.writeHead(200, { "Content-Type": ctype, "Content-Length": String(body.length) });
+  res.writeHead(200, {
+    "Content-Type": ctype,
+    "Content-Length": String(body.length),
+  });
   res.end(body);
 }
 
-async function handlePost(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
+async function handlePost(
+  req: http.IncomingMessage,
+  res: http.ServerResponse,
+): Promise<void> {
   try {
     const raw = await readBody(req);
-    const body = JSON.parse(raw.length > 0 ? raw.toString("utf8") : "{}") as Record<string, unknown>;
+    const body = JSON.parse(
+      raw.length > 0 ? raw.toString("utf8") : "{}",
+    ) as Record<string, unknown>;
     const text = (body.text as string | undefined) ?? "";
     const register0 = (body.register as string | undefined) ?? "editorial";
     const route = req.url ?? ""; // matches Python self.path (query included)
@@ -154,7 +175,12 @@ async function handlePost(req: http.IncomingMessage, res: http.ServerResponse): 
         (body.typos as string | undefined) ?? "none",
       );
       const sc: ScoreResult = score(out, register);
-      if (body.judge) sc.judge = await judge(out, register, (body.backend as string | undefined) ?? "auto");
+      if (body.judge)
+        sc.judge = await judge(
+          out,
+          register,
+          (body.backend as string | undefined) ?? "auto",
+        );
       sendJson(res, 200, {
         text: out,
         enforcement: rep,
@@ -173,7 +199,8 @@ async function handlePost(req: http.IncomingMessage, res: http.ServerResponse): 
     }
   } catch (e) {
     if (e instanceof SysExit) sendJson(res, 502, { error: e.message });
-    else sendJson(res, 500, { error: e instanceof Error ? e.message : String(e) });
+    else
+      sendJson(res, 500, { error: e instanceof Error ? e.message : String(e) });
   }
 }
 
@@ -191,7 +218,9 @@ export function serve(port: number): void {
     }
   });
   server.listen(port, "127.0.0.1", () => {
-    process.stdout.write(`hyphos serving on http://127.0.0.1:${port} (local only, Ctrl-C stops)\n`);
+    process.stdout.write(
+      `hyphos serving on http://127.0.0.1:${port} (local only, Ctrl-C stops)\n`,
+    );
   });
 }
 

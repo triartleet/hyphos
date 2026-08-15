@@ -17,7 +17,12 @@ export {
   RULES,
   PIPELINE_FIXTURES,
 } from "./commands/rules.js";
-export type { Rule, RuleKind, RuleTest, EnforceReport } from "./commands/rules.js";
+export type {
+  Rule,
+  RuleKind,
+  RuleTest,
+  EnforceReport,
+} from "./commands/rules.js";
 
 // Model-free scoring and register discovery.
 export {
@@ -28,7 +33,11 @@ export {
   inferRegister,
   runScore,
 } from "./commands/score.js";
-export type { ScoreResult, RegisterInfo, InferResult } from "./commands/score.js";
+export type {
+  ScoreResult,
+  RegisterInfo,
+  InferResult,
+} from "./commands/score.js";
 
 // Model-driven rewrite and the LLM judge (D-005 backends).
 export {

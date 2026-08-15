@@ -3,6 +3,7 @@
 Append-only. Entries are superseded by new entries, never edited.
 
 ### D-001 — Voice data is local-only by design
+
 **Scope:** repo · **Decided:** 2026-08-13
 
 The corpus (your extracted writing) and the profiles derived from it live under
@@ -17,6 +18,7 @@ trustworthy if the data plane is local by construction, not by policy.
 anything shareable (the code, the docs) must make sense without the data.
 
 ### D-002 — v1 is the full loop, fidelity score included
+
 **Scope:** repo · **Decided:** 2026-08-13
 
 The first complete version ships all four stages — corpus extraction, register
@@ -25,9 +27,10 @@ profiles-only or rewrite-only cut.
 
 **Why:** "sounds like you" is an unfalsifiable claim without measurement. The
 score is both the quality loop (it catches drift) and the honest contract with
-the user (it shows when a rewrite is *not* working).
+the user (it shows when a rewrite is _not_ working).
 
 ### D-003 — Quirks are enforced after the model, as deterministic rules
+
 **Scope:** repo · **Decided:** 2026-08-13
 
 Mechanical style habits — punctuation policy, banned words, casing, rhythm
@@ -42,6 +45,7 @@ cannot be argued with; prompts can.
 diff of what enforcement changed is part of the result.
 
 ### D-004 — Non-English sources contribute rhythm, never vocabulary
+
 **Scope:** repo · **Decided:** 2026-08-13
 
 Writing in other languages may enter the corpus as low-weight signal for
@@ -53,6 +57,7 @@ cadence) transfer across languages; idiom and vocabulary do not. Mixing them
 degrades the profile it claims to improve.
 
 ### D-005 — The rewrite backend is subscription-first, API-key second
+
 **Scope:** repo · **Decided:** 2026-08-13
 
 Rewrite and judging calls target the user's existing Claude subscription first, by
@@ -69,6 +74,7 @@ clearly when neither backend is present; per-call cost reporting only applies on
 the API path.
 
 ### D-006 — Output is clean by default; imperfections are an opt-in, measured feature
+
 **Scope:** repo · **Decided:** 2026-08-14
 
 Rewritten output ships typo-free, regardless of how typo-rich the source corpus
@@ -85,6 +91,7 @@ his for human-facing writing — typo rate is register signal, not identity.
 command gains a `--typos natural|none` flag defaulting to none.
 
 ### D-007 — Registers are discovered from data, never declared in code
+
 **Scope:** repo · **Decided:** 2026-08-14
 
 The register list is whatever profile buckets exist with corpus behind them.
@@ -108,6 +115,7 @@ verdicts are the cheapest reliable improvement signal a local tool can have.
 `corpus/feedback.jsonl` (local-only, like all voice data).
 
 ### D-008 — Content adaptation is a rule registry, never ad-hoc prose rework
+
 **Scope:** repo · **Decided:** 2026-08-14
 
 Every deterministic content-adaptation operation is a declared rule — id,
@@ -128,6 +136,7 @@ year ranges its own comment claimed to protect).
 without tests fails review by construction.
 
 ### D-008 — TypeScript/Node reimplementation, gated on stage-by-stage parity
+
 **Scope:** repo · **Decided:** 2026-08-15
 
 The tool is reimplemented in TypeScript and run via `npx`; the Python scripts are

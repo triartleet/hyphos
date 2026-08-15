@@ -40,7 +40,13 @@ const BARE_FILE_RE = /^message_.*\.json$/;
 // Export archives arrive date-and-hash-stamped (facebook-<user>-<date>-<id>); the
 // platform is the stable identity, so a future export refreshes the same corpus
 // file and profile bucket instead of spawning a new date-stamped one.
-const PLATFORMS = ["facebook", "instagram", "messenger", "whatsapp", "telegram"] as const;
+const PLATFORMS = [
+  "facebook",
+  "instagram",
+  "messenger",
+  "whatsapp",
+  "telegram",
+] as const;
 
 function sourceName(stem: string): string {
   const low = stem.toLowerCase();
@@ -93,7 +99,10 @@ function iterThreads(inbox: string): ThreadEntry[] {
   const bare = names.filter((n) => BARE_FILE_RE.test(n)).sort();
   for (const fname of bare) {
     try {
-      out.push(["chat", JSON.parse(fs.readFileSync(path.join(inbox, fname), "utf8"))]);
+      out.push([
+        "chat",
+        JSON.parse(fs.readFileSync(path.join(inbox, fname), "utf8")),
+      ]);
     } catch {
       continue;
     }
@@ -115,7 +124,13 @@ function iterThreads(inbox: string): ThreadEntry[] {
  * like \n/\t, literal non-ASCII, escaped `"` and `\`). Numbers/`null` likewise
  * render identically for integer timestamps and word counts.
  */
-function jsonlLine(ts: unknown, source: string, lang: string, words: number, text: string): string {
+function jsonlLine(
+  ts: unknown,
+  source: string,
+  lang: string,
+  words: number,
+  text: string,
+): string {
   const tsJson = JSON.stringify(ts ?? null); // undefined/None → null
   return (
     `{"ts": ${tsJson}, "source": ${JSON.stringify(source)}, ` +
@@ -131,7 +146,9 @@ export function runIngestChat(argv: string[]): number {
   const inbox = path.join(corpus, "inbox");
   const threads = iterThreads(inbox);
   if (threads.length === 0) {
-    process.stdout.write("no chat exports found in corpus/inbox/ — nothing to do\n");
+    process.stdout.write(
+      "no chat exports found in corpus/inbox/ — nothing to do\n",
+    );
     return 0;
   }
 
@@ -149,7 +166,8 @@ export function runIngestChat(argv: string[]): number {
     for (const s of senders) presence.add(s);
   }
   const owner =
-    process.env.CHAT_OWNER_NAME || (presence.size ? presence.mostCommon(1)[0]![0] : "");
+    process.env.CHAT_OWNER_NAME ||
+    (presence.size ? presence.mostCommon(1)[0]![0] : "");
   process.stdout.write(
     `owner detected: present in ${presence.get(owner)}/${threads.length} ` +
       `threads (override with CHAT_OWNER_NAME)\n`,
@@ -172,16 +190,25 @@ export function runIngestChat(argv: string[]): number {
     const messages = (t["messages"] as unknown[] | undefined) ?? [];
     for (const mu of messages) {
       const m = mu as Record<string, unknown>;
-      if (demojibake((m["sender_name"] as string | null | undefined) ?? "") !== owner) {
+      if (
+        demojibake((m["sender_name"] as string | null | undefined) ?? "") !==
+        owner
+      ) {
         droppedOthers++;
         continue;
       }
-      let text = demojibake(((m["content"] as string | null | undefined) ?? "") || "").trim();
+      let text = demojibake(
+        ((m["content"] as string | null | undefined) ?? "") || "",
+      ).trim();
       text = text.replace(URL_RE, " ").trim();
       if (whitespaceSplit(text).length < 3) continue;
       for (const [lang, chunk] of splitByLang(text)) {
         const words = whitespaceSplit(chunk).length;
-        fs.writeSync(fd, jsonlLine(m["timestamp_ms"], `chat:${source}`, lang, words, chunk) + "\n");
+        fs.writeSync(
+          fd,
+          jsonlLine(m["timestamp_ms"], `chat:${source}`, lang, words, chunk) +
+            "\n",
+        );
         kept++;
         wordsByLang.set(lang, (wordsByLang.get(lang) ?? 0) + words);
       }
@@ -190,9 +217,13 @@ export function runIngestChat(argv: string[]): number {
 
   for (const fd of fds.values()) fs.closeSync(fd);
 
-  process.stdout.write(`kept: ${kept} messages (owner only; ${droppedOthers} others dropped)\n`);
+  process.stdout.write(
+    `kept: ${kept} messages (owner only; ${droppedOthers} others dropped)\n`,
+  );
   // sorted(words_by_lang.items()) — by language tag, in code-point order.
-  const langs = [...wordsByLang.keys()].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
+  const langs = [...wordsByLang.keys()].sort((a, b) =>
+    a < b ? -1 : a > b ? 1 : 0,
+  );
   for (const lang of langs) {
     process.stdout.write(`  ${lang}: ${wordsByLang.get(lang)} words\n`);
   }

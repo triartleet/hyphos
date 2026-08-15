@@ -65,7 +65,8 @@ function typedFlavored(par: string, maxWords: number): boolean {
   const w = whitespaceSplit(par); // Python str.split() (no arg)
   if (!(w.length >= 4 && w.length <= maxWords)) return false;
   const stripped = par.trim();
-  if (CORRESPONDENCE_RE.test(stripped) || DOCLIKE_RE.test(stripped)) return false;
+  if (CORRESPONDENCE_RE.test(stripped) || DOCLIKE_RE.test(stripped))
+    return false;
   return SALVAGE_INSTRUCTION_RE.test(par);
 }
 
@@ -88,7 +89,10 @@ function salvage(text: string): string | null {
     else break;
   }
   // If we did not already keep every paragraph, consider the closing one.
-  if (paras.length > kept.length && typedFlavored(paras[paras.length - 1]!, 60)) {
+  if (
+    paras.length > kept.length &&
+    typedFlavored(paras[paras.length - 1]!, 60)
+  ) {
     kept.push(paras[paras.length - 1]!);
   }
   const out = kept.join("\n\n");

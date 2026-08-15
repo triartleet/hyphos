@@ -71,7 +71,10 @@ export const RULES: Rule[] = [
     pattern: "You(?:'|’)re absolutely (?:right|correct)[.!]\\s*",
     tests: [
       { in: "You're absolutely right. Next point.", out: "Next point." },
-      { in: "You're absolutely right to ask.", out: "You're absolutely right to ask." },
+      {
+        in: "You're absolutely right to ask.",
+        out: "You're absolutely right to ask.",
+      },
     ],
   },
   {
@@ -104,7 +107,8 @@ export const RULES: Rule[] = [
   {
     id: "contrast-flip",
     kind: "flag",
-    pattern: "\\b(?:that|this|it)(?:'|’)s not (?:just )?\\w[\\w\\s]{0,30}[—,-]\\s*(?:it|that)(?:'|’)s\\b",
+    pattern:
+      "\\b(?:that|this|it)(?:'|’)s not (?:just )?\\w[\\w\\s]{0,30}[—,-]\\s*(?:it|that)(?:'|’)s\\b",
     tests: [{ in: "it's not just speed, it's design", flags: 1 }],
   },
   {
@@ -160,7 +164,11 @@ export function loadRules(): Rule[] {
 
 // Expand a Python-style replacement string (\1..\9, \g<n>, \\) against the
 // match's capture groups. Anything else, including `$`, is copied literally.
-function expandReplacement(repl: string, match: string, groups: (string | undefined)[]): string {
+function expandReplacement(
+  repl: string,
+  match: string,
+  groups: (string | undefined)[],
+): string {
   let out = "";
   for (let i = 0; i < repl.length; i++) {
     const ch = repl[i]!;
@@ -213,8 +221,10 @@ function subn(re: RegExp, replacement: string, text: string): [string, number] {
 
 /** Apply one rule. Returns [text, count]; `flag` rules leave text unchanged. */
 export function applyOne(rule: Rule, text: string): [string, number] {
-  if (rule.kind === "remove") return subn(new RegExp(rule.pattern, "g"), "", text);
-  if (rule.kind === "replace") return subn(new RegExp(rule.pattern, "g"), rule.replacement ?? "", text);
+  if (rule.kind === "remove")
+    return subn(new RegExp(rule.pattern, "g"), "", text);
+  if (rule.kind === "replace")
+    return subn(new RegExp(rule.pattern, "g"), rule.replacement ?? "", text);
   const matches = text.match(new RegExp(rule.pattern, "gi"));
   return [text, matches ? matches.length : 0];
 }
@@ -271,10 +281,14 @@ export function rulesSelftest(verbose = true): number {
       const [out, n] = applyOne(rule, t.in);
       if (t.out !== undefined && out !== t.out) {
         failures++;
-        console.log(`FAIL ${rule.id}: ${pyRepr(t.in)} -> ${pyRepr(out)}, expected ${pyRepr(t.out)}`);
+        console.log(
+          `FAIL ${rule.id}: ${pyRepr(t.in)} -> ${pyRepr(out)}, expected ${pyRepr(t.out)}`,
+        );
       } else if (t.flags !== undefined && n !== t.flags) {
         failures++;
-        console.log(`FAIL ${rule.id}: ${pyRepr(t.in)} flagged ${n}, expected ${t.flags}`);
+        console.log(
+          `FAIL ${rule.id}: ${pyRepr(t.in)} flagged ${n}, expected ${t.flags}`,
+        );
       }
     }
   }
@@ -282,12 +296,16 @@ export function rulesSelftest(verbose = true): number {
     const [out] = enforce(fx.in);
     if (out !== fx.out) {
       failures++;
-      console.log(`FAIL pipeline: ${pyRepr(fx.in)} -> ${pyRepr(out)}, expected ${pyRepr(fx.out)}`);
+      console.log(
+        `FAIL pipeline: ${pyRepr(fx.in)} -> ${pyRepr(out)}, expected ${pyRepr(fx.out)}`,
+      );
     }
   }
   if (verbose) {
     const nRules = rules.length;
-    const nTests = rules.reduce((s, r) => s + (r.tests?.length ?? 0), 0) + PIPELINE_FIXTURES.length;
+    const nTests =
+      rules.reduce((s, r) => s + (r.tests?.length ?? 0), 0) +
+      PIPELINE_FIXTURES.length;
     console.log(`${nRules} rules, ${nTests} tests, ${failures} failure(s)`);
   }
   return failures;
@@ -301,7 +319,9 @@ export function runRules(opts: { test?: boolean } = {}): number {
   if (opts.test) return rulesSelftest() ? 1 : 0;
   for (const rule of loadRules()) {
     const tests = rule.tests?.length ?? 0;
-    process.stdout.write(`${rule.id.padEnd(22)} ${rule.kind.padEnd(8)} ${tests} test(s)\n`);
+    process.stdout.write(
+      `${rule.id.padEnd(22)} ${rule.kind.padEnd(8)} ${tests} test(s)\n`,
+    );
   }
   return 0;
 }
@@ -312,10 +332,15 @@ export function runRules(opts: { test?: boolean } = {}): number {
  * stderr. The `--register` flag is accepted for symmetry but unused (enforcement
  * is register-independent). Returns an exit code.
  */
-export function runEnforce(file: string, _opts: { register?: string } = {}): number {
+export function runEnforce(
+  file: string,
+  _opts: { register?: string } = {},
+): number {
   const text = fs.readFileSync(file, "utf8");
   const [out, report] = enforce(text);
   process.stdout.write(out);
-  process.stderr.write("\n== enforcement ==\n" + pyDumps(report, { indent: 1 }) + "\n");
+  process.stderr.write(
+    "\n== enforcement ==\n" + pyDumps(report, { indent: 1 }) + "\n",
+  );
   return 0;
 }

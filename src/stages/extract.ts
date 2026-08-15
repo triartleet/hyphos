@@ -59,7 +59,9 @@ function expanduser(p: string): string {
 function transcriptRoot(argv: string[]): string {
   if (argv.length > 1) return expanduser(argv[1]!);
   const configDir = process.env.CLAUDE_CONFIG_DIR;
-  const base = configDir ? expanduser(configDir) : path.join(os.homedir(), ".claude");
+  const base = configDir
+    ? expanduser(configDir)
+    : path.join(os.homedir(), ".claude");
   return path.join(base, "projects");
 }
 
@@ -184,7 +186,8 @@ function keep(raw: string): string | null {
   const text = raw.replace(PASTE_RE, "").trim();
   if (!text || text === "+") return null;
   if (text.startsWith("/")) return null; // slash commands are operations, not voice
-  if (text.startsWith("Caveat:") || text.startsWith("[Request interrupted")) return null;
+  if (text.startsWith("Caveat:") || text.startsWith("[Request interrupted"))
+    return null;
   if (text.startsWith("<") && text.includes(">")) return null; // command wrappers, reminders
   return text;
 }

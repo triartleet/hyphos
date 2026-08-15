@@ -61,7 +61,12 @@ const WEIGHTS: Record<MetricKey, number> = {
   lower_start_rate: 1.0,
 };
 // Short texts give noisy rate estimates: these metrics are damped by length.
-const NOISY = new Set<MetricKey>(["comma_per_1k", "excl_per_1k", "sent_p50", "lower_start_rate"]);
+const NOISY = new Set<MetricKey>([
+  "comma_per_1k",
+  "excl_per_1k",
+  "sent_p50",
+  "lower_start_rate",
+]);
 
 // Python `str[:1].islower()` for a single leading char: cased and lowercase.
 function firstIsLower(s: string): boolean {
@@ -99,14 +104,24 @@ export function loadFingerprint(register: string): Record<string, unknown> {
   try {
     raw = fs.readFileSync(fp, "utf8");
   } catch {
-    throw new SysExit(`no fingerprint for register '${register}' — run bin/profile_fingerprint.py`);
+    throw new SysExit(
+      `no fingerprint for register '${register}' — run bin/profile_fingerprint.py`,
+    );
   }
   return pyJsonParse(raw) as Record<string, unknown>;
 }
 
 // `dict.get(key, default)` over a possibly-missing nested value.
-function getOr(obj: unknown, key: string, dflt: number | PyFloat): number | PyFloat {
-  if (obj && typeof obj === "object" && key in (obj as Record<string, unknown>)) {
+function getOr(
+  obj: unknown,
+  key: string,
+  dflt: number | PyFloat,
+): number | PyFloat {
+  if (
+    obj &&
+    typeof obj === "object" &&
+    key in (obj as Record<string, unknown>)
+  ) {
     return (obj as Record<string, number | PyFloat>)[key]!;
   }
   return dflt;
@@ -122,7 +137,10 @@ export interface ScoreResult {
   fidelity: PyFloat;
   confidence: string;
   model_ism_signals: number;
-  metric_deltas: Record<string, { text: number | PyFloat; register: number | PyFloat }>;
+  metric_deltas: Record<
+    string,
+    { text: number | PyFloat; register: number | PyFloat }
+  >;
   note: string;
   judge?: unknown;
 }
@@ -227,7 +245,10 @@ export function registersInfo(): RegisterInfo[] {
       register: name,
       words,
       confidence: conf,
-      hint: conf !== "low" ? null : "low sampling — add source material to sharpen this voice",
+      hint:
+        conf !== "low"
+          ? null
+          : "low sampling — add source material to sharpen this voice",
     });
   }
   return out;
@@ -255,10 +276,13 @@ export function inferRegister(text: string): InferResult {
       throw e;
     }
   }
-  if (ranked.length === 0) return { register: "editorial", confidence: "none", scores: {} };
+  if (ranked.length === 0)
+    return { register: "editorial", confidence: "none", scores: {} };
   // Python `list.sort(reverse=True)` on (fidelity, register) tuples: descending
   // by fidelity, then descending by register name for ties.
-  ranked.sort((a, b) => (b[0] !== a[0] ? b[0] - a[0] : b[1] < a[1] ? -1 : b[1] > a[1] ? 1 : 0));
+  ranked.sort((a, b) =>
+    b[0] !== a[0] ? b[0] - a[0] : b[1] < a[1] ? -1 : b[1] > a[1] ? 1 : 0,
+  );
   const margin = ranked[0]![0] - (ranked.length > 1 ? ranked[1]![0] : 0);
   const scores: Record<string, PyFloat> = {};
   for (const [s, r] of ranked) scores[r] = new PyFloat(pyRound(s, 1));

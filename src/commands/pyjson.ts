@@ -66,7 +66,8 @@ function encodeString(s: string, ensureAscii: boolean): string {
     // matching CPython. Astral characters are two UTF-16 units here, so each
     // surrogate is emitted as its own \uXXXX — exactly the surrogate pair Python
     // writes.
-    else if (ensureAscii && code > 0x7f) out += "\\u" + code.toString(16).padStart(4, "0");
+    else if (ensureAscii && code > 0x7f)
+      out += "\\u" + code.toString(16).padStart(4, "0");
     else out += ch;
   }
   return out + '"';
@@ -100,21 +101,41 @@ export function pyDumps(obj: unknown, opts: PyDumpsOptions = {}): string {
     if (t === "string") return encodeString(v as string, ensureAscii);
     if (Array.isArray(v)) {
       if (v.length === 0) return "[]";
-      if (indent === undefined) return "[" + v.map((x) => ser(x, level)).join(itemSep) + "]";
-      const pad = " ".repeat(indent * (level + 1));
-      const end = " ".repeat(indent * level);
-      return "[\n" + v.map((x) => pad + ser(x, level + 1)).join(itemSep + "\n") + "\n" + end + "]";
-    }
-    if (t === "object") {
-      const entries = Object.entries(v as Record<string, unknown>).filter(([, val]) => val !== undefined);
-      if (entries.length === 0) return "{}";
-      const body = (k: string, val: unknown, lvl: number): string =>
-        encodeString(k, ensureAscii) + keySep + ser(val, lvl);
-      if (indent === undefined) return "{" + entries.map(([k, val]) => body(k, val, level)).join(itemSep) + "}";
+      if (indent === undefined)
+        return "[" + v.map((x) => ser(x, level)).join(itemSep) + "]";
       const pad = " ".repeat(indent * (level + 1));
       const end = " ".repeat(indent * level);
       return (
-        "{\n" + entries.map(([k, val]) => pad + body(k, val, level + 1)).join(itemSep + "\n") + "\n" + end + "}"
+        "[\n" +
+        v.map((x) => pad + ser(x, level + 1)).join(itemSep + "\n") +
+        "\n" +
+        end +
+        "]"
+      );
+    }
+    if (t === "object") {
+      const entries = Object.entries(v as Record<string, unknown>).filter(
+        ([, val]) => val !== undefined,
+      );
+      if (entries.length === 0) return "{}";
+      const body = (k: string, val: unknown, lvl: number): string =>
+        encodeString(k, ensureAscii) + keySep + ser(val, lvl);
+      if (indent === undefined)
+        return (
+          "{" +
+          entries.map(([k, val]) => body(k, val, level)).join(itemSep) +
+          "}"
+        );
+      const pad = " ".repeat(indent * (level + 1));
+      const end = " ".repeat(indent * level);
+      return (
+        "{\n" +
+        entries
+          .map(([k, val]) => pad + body(k, val, level + 1))
+          .join(itemSep + "\n") +
+        "\n" +
+        end +
+        "}"
       );
     }
     return "null";
@@ -141,7 +162,8 @@ export function pyJsonParse(text: string): unknown {
     }
   };
   const expect = (lit: string): void => {
-    if (text.slice(i, i + lit.length) !== lit) throw new SyntaxError(`expected ${lit} at ${i}`);
+    if (text.slice(i, i + lit.length) !== lit)
+      throw new SyntaxError(`expected ${lit} at ${i}`);
     i += lit.length;
   };
 

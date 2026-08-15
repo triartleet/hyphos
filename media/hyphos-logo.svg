@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 300" width="640" height="300" role="img" aria-label="hyphos — a fingerprint of nested loops, the unique shape of one writer's voice">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1e2a3a"/>
+      <stop offset="1" stop-color="#121a24"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#c3b0ff"/>
+      <stop offset="1" stop-color="#8b6ff0"/>
+    </linearGradient>
+    <clipPath id="frame">
+      <rect width="640" height="300" rx="18"/>
+    </clipPath>
+  </defs>
+
+  <g clip-path="url(#frame)">
+    <rect width="640" height="300" fill="url(#bg)"/>
+
+    <!-- a fingerprint of nested loops: the unique shape of one voice -->
+    <g transform="translate(320,168)" fill="none" stroke="url(#accent)" stroke-linecap="round" stroke-width="7">
+      <path d="M -96 66 L -96 0 A 96 96 0 0 1 96 0 L 96 66"/>
+      <path d="M -78 62 L -78 0 A 78 78 0 0 1 78 0 L 78 62"/>
+      <path d="M -60 57 L -60 0 A 60 60 0 0 1 60 0 L 60 57"/>
+      <path d="M -42 52 L -42 0 A 42 42 0 0 1 42 0 L 42 52"/>
+      <path d="M -24 47 L -24 0 A 24 24 0 0 1 24 0 L 24 47"/>
+      <!-- the whorl core: a small solid centre, no stray line -->
+      <circle cx="0" cy="2" r="5.5" fill="url(#accent)" stroke="none"/>
+    </g>
+  </g>
+  <rect x="1" y="1" width="638" height="298" rx="18" fill="none" stroke="#2b3a4d" stroke-width="2"/>
+</svg>

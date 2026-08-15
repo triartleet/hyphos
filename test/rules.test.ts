@@ -20,7 +20,8 @@ describe("rules self-test (D-003 deterministic enforcement)", () => {
 
   it("has the expected rule and test counts (12 rules, 15 tests)", () => {
     const nTests =
-      RULES.reduce((s, r) => s + (r.tests?.length ?? 0), 0) + PIPELINE_FIXTURES.length;
+      RULES.reduce((s, r) => s + (r.tests?.length ?? 0), 0) +
+      PIPELINE_FIXTURES.length;
     expect(RULES.length).toBe(12);
     expect(nTests).toBe(15);
   });
@@ -30,7 +31,8 @@ describe("rules self-test (D-003 deterministic enforcement)", () => {
       for (const t of rule.tests ?? []) {
         const [out, n] = applyOne(rule, t.in);
         if (t.out !== undefined) expect(out, `${rule.id}: ${t.in}`).toBe(t.out);
-        if (t.flags !== undefined) expect(n, `${rule.id}: ${t.in}`).toBe(t.flags);
+        if (t.flags !== undefined)
+          expect(n, `${rule.id}: ${t.in}`).toBe(t.flags);
       }
     }
   });

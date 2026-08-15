@@ -1,18 +1,18 @@
 {
   "packVersion": "7",
   "etymdVersion": "0.10.0",
-  "approvedAt": "2026-08-15T07:04:28.526Z",
+  "approvedAt": "2026-08-15T15:51:06.283Z",
   "profile": "solo",
   "facts": {
     "etymdVersion": "0.10.0",
     "packVersion": "7",
-    "generatedAt": "2026-08-15T07:04:28.523Z",
+    "generatedAt": "2026-08-15T15:51:06.279Z",
     "root": ".",
     "name": "hyphos",
     "git": {
       "isRepo": true,
       "branch": "main",
-      "head": "3478dc6",
+      "head": "de1b889",
       "hooksPath": ".githooks",
       "husky": false,
       "recentAuthors": 1
@@ -36,7 +36,9 @@
         "parity": "node --import tsx parity/run.ts",
         "format": "prettier --write .",
         "format:check": "prettier --check .",
-        "prepare": "npm run build"
+        "prepare": "npm run build",
+        "doctor": "npx dokimd --manifest doctor.json --config-dir \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"",
+        "prepublishOnly": "./scripts/artifact-check.sh"
       },
       "formatCheck": "format:check",
       "typecheck": "typecheck",
@@ -46,8 +48,10 @@
       "dev": "dev"
     },
     "ci": {
-      "system": "none",
-      "files": []
+      "system": "github",
+      "files": [
+        ".github/workflows/ci.yml"
+      ]
     },
     "hooks": {
       "source": "githooks",
@@ -198,12 +202,12 @@
       "scripts": 3
     },
     "freshness": {
-      "repoLastCommit": "2026-08-15T08:55:20+02:00",
+      "repoLastCommit": "2026-08-15T15:18:08+02:00",
       "artifacts": [
         {
           "artifactId": "decisions",
           "path": "DECISIONS.md",
-          "lastCommit": "2026-08-14T05:56:54+02:00",
+          "lastCommit": "2026-08-15T09:06:28+02:00",
           "commitsSince": true
         }
       ],
@@ -240,7 +244,19 @@
           "files": 3
         },
         {
+          "name": "media",
+          "files": 2
+        },
+        {
+          "name": ".github",
+          "files": 1
+        },
+        {
           "name": "docs",
+          "files": 1
+        },
+        {
+          "name": "scripts",
           "files": 1
         }
       ],

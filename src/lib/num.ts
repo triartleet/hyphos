@@ -44,7 +44,10 @@ export function pyRound(x: number, ndigits = 0): number {
     out = digits;
   } else {
     const padded = digits.padStart(ndigits + 1, "0");
-    out = padded.slice(0, padded.length - ndigits) + "." + padded.slice(padded.length - ndigits);
+    out =
+      padded.slice(0, padded.length - ndigits) +
+      "." +
+      padded.slice(padded.length - ndigits);
   }
   const val = Number(out);
   return neg ? -val : val;

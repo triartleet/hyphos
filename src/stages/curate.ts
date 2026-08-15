@@ -132,7 +132,10 @@ export function runCurate(argv: string[]): number {
     // `stripped` is already whitespace-stripped, so its first char equals the
     // reference's `stripped.lstrip()[:1]`. Drop unfenced JSON/config pastes.
     const first = stripped.slice(0, 1);
-    if ((first === "{" || first === "[") && countOccurrences(stripped, '":') >= 2) {
+    if (
+      (first === "{" || first === "[") &&
+      countOccurrences(stripped, '":') >= 2
+    ) {
       droppedEmpty++;
       continue;
     }
@@ -165,7 +168,9 @@ export function runCurate(argv: string[]): number {
   fs.writeFileSync(statsPath, stats);
 
   process.stdout.write(`kept: ${kept} messages, ${keptWords} words\n`);
-  process.stdout.write(`quarantined: ${quarantined} messages (${qWords} words)\n`);
+  process.stdout.write(
+    `quarantined: ${quarantined} messages (${qWords} words)\n`,
+  );
   process.stdout.write(`dropped empty after strip: ${droppedEmpty}\n`);
   return 0;
 }

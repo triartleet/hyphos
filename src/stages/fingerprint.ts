@@ -15,11 +15,43 @@ import { pyRound, mean, median } from "../lib/num.js";
 import { words, typoTokens, sentencesOf } from "../lib/text.js";
 import { corpusDir, profilesDir } from "../lib/paths.js";
 
-const PUNCT = [".", ",", ";", ":", "!", "?", "—", "–", "-", "(", ")", '"', "'", "…"];
+const PUNCT = [
+  ".",
+  ",",
+  ";",
+  ":",
+  "!",
+  "?",
+  "—",
+  "–",
+  "-",
+  "(",
+  ")",
+  '"',
+  "'",
+  "…",
+];
 const CONNECTORS = [
-  "so", "thus", "also", "then", "but", "though", "however", "actually",
-  "basically", "anyway", "instead", "meaning", "plus", "regarding", "since",
-  "therefore", "besides", "otherwise", "still", "yet",
+  "so",
+  "thus",
+  "also",
+  "then",
+  "but",
+  "though",
+  "however",
+  "actually",
+  "basically",
+  "anyway",
+  "instead",
+  "meaning",
+  "plus",
+  "regarding",
+  "since",
+  "therefore",
+  "besides",
+  "otherwise",
+  "still",
+  "yet",
 ];
 const EMOJI_RE = /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}]/gu;
 const CONTRACTION_RE = /\b\w+'(s|t|re|ve|ll|d|m)\b/gi;
@@ -27,9 +59,15 @@ const ELLIPSIS_RE = /\.\.\.|…/g;
 
 // The transferable subset (non-English contributes rhythm, never vocabulary).
 const RHYTHM_KEYS = [
-  "messages", "words", "sentence_len", "message_len_p50",
-  "punct_per_1k_words", "lowercase_sentence_start_rate",
-  "allcaps_word_per_1k", "emoji_per_1k", "ellipses_per_1k",
+  "messages",
+  "words",
+  "sentence_len",
+  "message_len_p50",
+  "punct_per_1k_words",
+  "lowercase_sentence_start_rate",
+  "allcaps_word_per_1k",
+  "emoji_per_1k",
+  "ellipses_per_1k",
 ] as const;
 
 export interface Fingerprint {
@@ -77,7 +115,10 @@ function dictionary(): Set<string> {
   if (DICT === null) {
     try {
       DICT = new Set(
-        fs.readFileSync("/usr/share/dict/words", "utf8").split("\n").map((w) => w.trim().toLowerCase()),
+        fs
+          .readFileSync("/usr/share/dict/words", "utf8")
+          .split("\n")
+          .map((w) => w.trim().toLowerCase()),
       );
     } catch {
       DICT = new Set();
@@ -94,19 +135,25 @@ function* edit1Forms(w: string): Generator<string> {
   const splits: [string, string][] = [];
   for (let i = 0; i <= w.length; i++) splits.push([w.slice(0, i), w.slice(i)]);
   for (const [a, b] of splits) if (b) yield a + b.slice(1); // delete
-  for (const [a, b] of splits) if (b.length > 1) yield a + b[1] + b[0] + b.slice(2); // swap
-  for (const [a, b] of splits) if (b) for (const c of EDIT_LETTERS) yield a + c + b.slice(1); // replace
+  for (const [a, b] of splits)
+    if (b.length > 1) yield a + b[1] + b[0] + b.slice(2); // swap
+  for (const [a, b] of splits)
+    if (b) for (const c of EDIT_LETTERS) yield a + c + b.slice(1); // replace
   for (const [a, b] of splits) for (const c of EDIT_LETTERS) yield a + c + b; // insert
 }
 
-function typoCatalog(texts: string[]): { count: number; catalog: Record<string, string> } {
+function typoCatalog(texts: string[]): {
+  count: number;
+  catalog: Record<string, string>;
+} {
   const d = dictionary();
   if (d.size === 0) return { count: 0, catalog: {} };
 
   const known = (w: string): boolean => {
     if (w.includes("'") || d.has(w)) return true;
     for (const suf of ["s", "es", "ed", "ing", "ly", "er", "est"]) {
-      if (w.endsWith(suf) && d.has(w.slice(0, w.length - suf.length))) return true;
+      if (w.endsWith(suf) && d.has(w.slice(0, w.length - suf.length)))
+        return true;
     }
     if (w.endsWith("ing") && d.has(w.slice(0, -3) + "e")) return true; // staging, writing
     if (w.endsWith("ed") && d.has(w.slice(0, -1))) return true; // merged, shared
@@ -180,7 +227,8 @@ export function fingerprint(texts: string[]): Fingerprint {
   const punctOut: Record<string, number> = {};
   for (const [p, c] of punct.entries()) if (c) punctOut[p] = per1k(c);
   const connectorOut: Record<string, number> = {};
-  for (const [c, k] of connectors.mostCommon(12)) if (k) connectorOut[c] = per1k(k);
+  for (const [c, k] of connectors.mostCommon(12))
+    if (k) connectorOut[c] = per1k(k);
 
   return {
     messages: nMsgs,
@@ -197,7 +245,10 @@ export function fingerprint(texts: string[]): Fingerprint {
     emoji_per_1k: per1k(emoji),
     contractions_per_1k: per1k(contractions),
     ellipses_per_1k: per1k(ellipses),
-    avg_word_len: pyRound(wordsAll.reduce((s, w) => s + w.length, 0) / totalWords, 2),
+    avg_word_len: pyRound(
+      wordsAll.reduce((s, w) => s + w.length, 0) / totalWords,
+      2,
+    ),
     unique_word_ratio: pyRound(new Set(wordsAll).size / totalWords, 3),
     top_sentence_openers: firstWords.mostCommon(15),
     connector_use_per_1k: connectorOut,
@@ -208,7 +259,8 @@ function rhythmOnly(fp: Fingerprint): Record<string, unknown> {
   const r: Record<string, unknown> = {};
   const src = fp as unknown as Record<string, unknown>;
   for (const k of RHYTHM_KEYS) if (k in fp) r[k] = src[k];
-  r["signal"] = "rhythm-only (D-004: non-English contributes rhythm, never vocabulary)";
+  r["signal"] =
+    "rhythm-only (D-004: non-English contributes rhythm, never vocabulary)";
   return r;
 }
 
@@ -247,17 +299,23 @@ export function runFingerprint(): number {
   for (const fname of ["tagged.jsonl", "salvaged.jsonl"]) {
     const f = path.join(corpus, fname);
     if (fs.existsSync(f)) {
-      for (const o of readJsonl(f)) push(buckets, o["register"] as string, o["text"] as string);
+      for (const o of readJsonl(f))
+        push(buckets, o["register"] as string, o["text"] as string);
     }
   }
 
   const listing = fs.existsSync(corpus) ? fs.readdirSync(corpus) : [];
-  const emailFiles = listing.filter((f) => f.startsWith("email-") && f.endsWith(".jsonl")).sort();
-  const chatFiles = listing.filter((f) => f.startsWith("chat-") && f.endsWith(".jsonl")).sort();
+  const emailFiles = listing
+    .filter((f) => f.startsWith("email-") && f.endsWith(".jsonl"))
+    .sort();
+  const chatFiles = listing
+    .filter((f) => f.startsWith("chat-") && f.endsWith(".jsonl"))
+    .sort();
   for (const fname of [...emailFiles, ...chatFiles]) {
     const kind = fname.startsWith("email-") ? "email" : "chat";
     for (const o of readJsonl(path.join(corpus, fname))) {
-      let stem = ((o["source"] as string) ?? `${kind}:x`).split(/:(.*)/s)[1] ?? "x";
+      let stem =
+        ((o["source"] as string) ?? `${kind}:x`).split(/:(.*)/s)[1] ?? "x";
       if (stem.endsWith("-account")) stem = stem.slice(0, -8);
       const bucket = `${kind}-${stem}`;
       if (o["lang"] !== "en") {
@@ -266,8 +324,10 @@ export function runFingerprint(): number {
       }
       push(buckets, bucket, o["text"] as string);
       const y = emailYear(String(o["ts"] ?? ""));
-      if (y !== null && y < 2023) push(buckets, `${bucket}-pre2023`, o["text"] as string);
-      else if (y !== null && y >= 2024) push(buckets, `${bucket}-recent`, o["text"] as string);
+      if (y !== null && y < 2023)
+        push(buckets, `${bucket}-pre2023`, o["text"] as string);
+      else if (y !== null && y >= 2024)
+        push(buckets, `${bucket}-recent`, o["text"] as string);
     }
   }
 
@@ -293,7 +353,10 @@ export function runFingerprint(): number {
   }
 
   for (const [name, texts] of rhythmBuckets) {
-    const totalWords = texts.reduce((s, t) => s + t.split(/\s+/).filter(Boolean).length, 0);
+    const totalWords = texts.reduce(
+      (s, t) => s + t.split(/\s+/).filter(Boolean).length,
+      0,
+    );
     if (totalWords < 500) continue;
     const d = path.join(profiles, name);
     fs.mkdirSync(d, { recursive: true });

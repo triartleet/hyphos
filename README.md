@@ -1,5 +1,14 @@
 # hyphos
 
+<div align="center">
+  <img src="https://raw.githubusercontent.com/triartleet/hyphos/main/media/hyphos-logo.png" width="520" alt="hyphos — a pen nib tracing a personal signature waveform, the shape of one writer's voice">
+  <p>
+    <a href="https://www.npmjs.com/package/hyphos"><img src="https://img.shields.io/npm/v/hyphos.svg?label=npm&color=cb3837" alt="npm version"></a>
+    <a href="https://github.com/triartleet/hyphos/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/triartleet/hyphos/ci.yml?branch=main&label=CI" alt="CI"></a>
+    <a href="https://github.com/triartleet/hyphos/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="MIT license"></a>
+  </p>
+</div>
+
 _ύφος — Greek for the style and tone of one's expression._
 
 Rewrite any AI draft so it reads as written by **you**. hyphos builds
@@ -63,4 +72,8 @@ npm run build     # bundle to dist/ (the published CLI)
 npm run parity    # diff outputs against a reference implementation (see parity/)
 ```
 
-License: MIT.
+Roadmap: [ROADMAP.md](ROADMAP.md) · Decisions: [DECISIONS.md](DECISIONS.md)
+
+## License
+
+[MIT](LICENSE)

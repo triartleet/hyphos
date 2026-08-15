@@ -28,20 +28,37 @@ import { runIngestEmail } from "./stages/ingestEmail.js";
 import { runFingerprint } from "./stages/fingerprint.js";
 
 const program = new Command();
-program.name("hyphos").description("rewrite AI drafts in your own voice, with receipts");
+program
+  .name("hyphos")
+  .description("rewrite AI drafts in your own voice, with receipts");
 
 // ---- ported native commands (mirror the reference argparse) ----
 
 program
   .command("rewrite")
-  .description("model pass guided by your profiles, then the deterministic enforcement pass")
+  .description(
+    "model pass guided by your profiles, then the deterministic enforcement pass",
+  )
   .argument("<file>")
   .option("--register <register>", "voice register", "editorial")
-  .addOption(new Option("--backend <backend>", "model backend").choices(["auto", "claude", "api"]).default("auto"))
-  .addOption(new Option("--typos <typos>", "re-introduce your real typos").choices(["none", "natural"]).default("none"))
-  .action(async (file: string, opts: { register: string; backend: string; typos: string }) => {
-    process.exitCode = await runRewrite(file, opts);
-  });
+  .addOption(
+    new Option("--backend <backend>", "model backend")
+      .choices(["auto", "claude", "api"])
+      .default("auto"),
+  )
+  .addOption(
+    new Option("--typos <typos>", "re-introduce your real typos")
+      .choices(["none", "natural"])
+      .default("none"),
+  )
+  .action(
+    async (
+      file: string,
+      opts: { register: string; backend: string; typos: string },
+    ) => {
+      process.exitCode = await runRewrite(file, opts);
+    },
+  );
 
 program
   .command("enforce")

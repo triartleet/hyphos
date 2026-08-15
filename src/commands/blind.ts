@@ -37,13 +37,22 @@ function shuffle<T>(arr: T[]): void {
 }
 
 /** Run the interactive blind test. Returns an exit code. */
-export async function blind(register: string, generatedFile: string, n: number): Promise<number> {
+export async function blind(
+  register: string,
+  generatedFile: string,
+  n: number,
+): Promise<number> {
   const tagged = path.join(corpusDir(), "tagged.jsonl");
   const real: string[] = [];
   for (const line of fs.readFileSync(tagged, "utf8").split("\n")) {
     if (line.length === 0) continue;
-    const o = JSON.parse(line) as { register: string; words: number; text: string };
-    if (o.register === register && o.words >= 25 && o.words <= 120) real.push(o.text);
+    const o = JSON.parse(line) as {
+      register: string;
+      words: number;
+      text: string;
+    };
+    if (o.register === register && o.words >= 25 && o.words <= 120)
+      real.push(o.text);
   }
   const gen = fs
     .readFileSync(generatedFile, "utf8")
@@ -58,9 +67,14 @@ export async function blind(register: string, generatedFile: string, n: number):
   ];
   shuffle(items);
 
-  const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
   let correct = 0;
-  process.stdout.write(`${2 * n} snippets. Answer y if YOU wrote it, n if not.\n\n`);
+  process.stdout.write(
+    `${2 * n} snippets. Answer y if YOU wrote it, n if not.\n\n`,
+  );
   let i = 0;
   for (const [text, isReal] of items) {
     i++;

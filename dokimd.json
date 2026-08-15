@@ -1,0 +1,15 @@
+{
+  "name": "hyphos ↔ claude-code transcripts",
+  "harness": "claude",
+  "versionArgs": ["--version"],
+  "probes": [
+    { "type": "command-exists" },
+    { "type": "version" },
+    {
+      "type": "transcript-field",
+      "glob": "projects/**/*.jsonl",
+      "fields": ["type", "message"],
+      "critical": true
+    }
+  ]
+}

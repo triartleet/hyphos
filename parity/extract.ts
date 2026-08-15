@@ -16,7 +16,9 @@ function main(): number {
   const snap = process.env.SNAPSHOT_PROJECTS;
   const ref = process.env.HYPHOS_REF_EXTRACT;
   if (!snap || !ref) {
-    process.stderr.write("extract parity: set SNAPSHOT_PROJECTS and HYPHOS_REF_EXTRACT\n");
+    process.stderr.write(
+      "extract parity: set SNAPSHOT_PROJECTS and HYPHOS_REF_EXTRACT\n",
+    );
     return 2;
   }
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "hyphos-extract-"));
@@ -29,11 +31,23 @@ function main(): number {
   } finally {
     (process.stdout as unknown as { write: typeof saved }).write = saved;
   }
-  let ok = reportDiffs("raw-sessions.jsonl", diffJsonl(path.join(tmp, "raw-sessions.jsonl"), path.join(ref, "raw-sessions.jsonl")));
-  const a = fs.existsSync(path.join(tmp, "stats.md")) ? fs.readFileSync(path.join(tmp, "stats.md"), "utf8") : "<missing>";
-  const b = fs.existsSync(path.join(ref, "stats.md")) ? fs.readFileSync(path.join(ref, "stats.md"), "utf8") : "<missing>";
+  let ok = reportDiffs(
+    "raw-sessions.jsonl",
+    diffJsonl(
+      path.join(tmp, "raw-sessions.jsonl"),
+      path.join(ref, "raw-sessions.jsonl"),
+    ),
+  );
+  const a = fs.existsSync(path.join(tmp, "stats.md"))
+    ? fs.readFileSync(path.join(tmp, "stats.md"), "utf8")
+    : "<missing>";
+  const b = fs.existsSync(path.join(ref, "stats.md"))
+    ? fs.readFileSync(path.join(ref, "stats.md"), "utf8")
+    : "<missing>";
   const mdOk = a === b;
-  process.stdout.write(`  stats.md: ${mdOk ? "PASS (byte-identical)" : "FAIL (differs)"}\n`);
+  process.stdout.write(
+    `  stats.md: ${mdOk ? "PASS (byte-identical)" : "FAIL (differs)"}\n`,
+  );
   ok = ok && mdOk;
   fs.rmSync(tmp, { recursive: true, force: true });
   process.stdout.write(`extract parity: ${ok ? "PASS" : "FAIL"}\n`);

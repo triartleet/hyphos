@@ -63,7 +63,8 @@ export function callClaudeCli(prompt: string): string {
     if (code === "ENOENT") throw new Error("claude CLI not found on PATH");
     throw new Error(`claude CLI failed: ${String(r.error).slice(0, 300)}`);
   }
-  if (r.status !== 0) throw new Error(`claude CLI failed: ${(r.stderr ?? "").slice(0, 300)}`);
+  if (r.status !== 0)
+    throw new Error(`claude CLI failed: ${(r.stderr ?? "").slice(0, 300)}`);
   return (r.stdout ?? "").trim();
 }
 
@@ -130,7 +131,8 @@ export async function judge(
   let lastErr: unknown = null;
   for (const b of order) {
     try {
-      const raw = b === "claude" ? callClaudeCli(prompt) : await callApi(prompt);
+      const raw =
+        b === "claude" ? callClaudeCli(prompt) : await callApi(prompt);
       const m = raw.match(/\{[\s\S]*\}/); // first "{" to last "}" (re.S greedy)
       if (!m) throw new Error(`no JSON in judge output: ${raw.slice(0, 120)}`);
       const out = pyJsonParse(m[0]) as Record<string, unknown>;
@@ -140,7 +142,9 @@ export async function judge(
       lastErr = e;
     }
   }
-  return { error: `judge failed: ${lastErr instanceof Error ? lastErr.message : String(lastErr)}` };
+  return {
+    error: `judge failed: ${lastErr instanceof Error ? lastErr.message : String(lastErr)}`,
+  };
 }
 
 // --- typo injection (D-006, opt-in) ---
@@ -191,14 +195,16 @@ export function injectTypos(text: string, register: string): [string, number] {
   let tjText: string;
   let fpText: string;
   try {
-    if (!fs.statSync(tj).isFile() || !fs.statSync(fp).isFile()) return [text, 0];
+    if (!fs.statSync(tj).isFile() || !fs.statSync(fp).isFile())
+      return [text, 0];
     tjText = fs.readFileSync(tj, "utf8");
     fpText = fs.readFileSync(fp, "utf8");
   } catch {
     return [text, 0];
   }
   const catalog = JSON.parse(tjText) as Record<string, string>; // {typo: correction}
-  const rate = (JSON.parse(fpText) as { typo_per_1k?: number }).typo_per_1k ?? 0;
+  const rate =
+    (JSON.parse(fpText) as { typo_per_1k?: number }).typo_per_1k ?? 0;
 
   const byCorrect: Record<string, string> = {};
   for (const [typo, correct] of Object.entries(catalog)) {
@@ -220,7 +226,8 @@ export function injectTypos(text: string, register: string): [string, number] {
   let out = text;
   let injected = 0;
   for (const [start, word] of positions.slice(0, k)) {
-    out = out.slice(0, start) + byCorrect[word]! + out.slice(start + word.length);
+    out =
+      out.slice(0, start) + byCorrect[word]! + out.slice(start + word.length);
     injected++;
   }
   return [out, injected];
@@ -242,7 +249,8 @@ export async function rewrite(
   let lastErr: unknown = null;
   for (const b of order) {
     try {
-      const out = b === "claude" ? callClaudeCli(prompt) : await callApi(prompt);
+      const out =
+        b === "claude" ? callClaudeCli(prompt) : await callApi(prompt);
       const [final, report] = enforce(out);
       let finalText = final;
       if (typos === "natural") {
@@ -255,7 +263,9 @@ export async function rewrite(
       lastErr = e;
     }
   }
-  throw new SysExit(`no backend succeeded: ${lastErr instanceof Error ? lastErr.message : String(lastErr)}`);
+  throw new SysExit(
+    `no backend succeeded: ${lastErr instanceof Error ? lastErr.message : String(lastErr)}`,
+  );
 }
 
 /**
@@ -267,10 +277,17 @@ export async function runRewrite(
   opts: { register: string; backend: string; typos: string },
 ): Promise<number> {
   const text = fs.readFileSync(file, "utf8");
-  const [out, report, backend] = await rewrite(opts.register, text, opts.backend, opts.typos);
+  const [out, report, backend] = await rewrite(
+    opts.register,
+    text,
+    opts.backend,
+    opts.typos,
+  );
   process.stdout.write(out);
   process.stderr.write(
-    `\n== backend: ${backend} ==\n== enforcement ==\n` + pyDumps(report, { indent: 1 }) + "\n",
+    `\n== backend: ${backend} ==\n== enforcement ==\n` +
+      pyDumps(report, { indent: 1 }) +
+      "\n",
   );
   return 0;
 }

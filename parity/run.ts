@@ -33,24 +33,38 @@ function walkJson(dir: string): Map<string, unknown> {
       const full = path.join(d, name);
       const r = rel ? `${rel}/${name}` : name;
       if (fs.statSync(full).isDirectory()) rec(full, r);
-      else if (name.endsWith(".json")) out.set(r, JSON.parse(fs.readFileSync(full, "utf8")));
+      else if (name.endsWith(".json"))
+        out.set(r, JSON.parse(fs.readFileSync(full, "utf8")));
     }
   };
   rec(dir, "");
   return out;
 }
 
-function compare(node: unknown, ref: unknown, file: string, keyPath: string, diffs: Diff[]): void {
+function compare(
+  node: unknown,
+  ref: unknown,
+  file: string,
+  keyPath: string,
+  diffs: Diff[],
+): void {
   if (typeof node === "number" && typeof ref === "number") {
-    if (!(Math.abs(node - ref) <= EPS)) diffs.push({ file, keyPath, node, ref });
+    if (!(Math.abs(node - ref) <= EPS))
+      diffs.push({ file, keyPath, node, ref });
     return;
   }
   if (Array.isArray(node) && Array.isArray(ref)) {
     if (node.length !== ref.length) {
-      diffs.push({ file, keyPath: `${keyPath}.length`, node: node.length, ref: ref.length });
+      diffs.push({
+        file,
+        keyPath: `${keyPath}.length`,
+        node: node.length,
+        ref: ref.length,
+      });
       return;
     }
-    for (let i = 0; i < node.length; i++) compare(node[i], ref[i], file, `${keyPath}[${i}]`, diffs);
+    for (let i = 0; i < node.length; i++)
+      compare(node[i], ref[i], file, `${keyPath}[${i}]`, diffs);
     return;
   }
   if (node && ref && typeof node === "object" && typeof ref === "object") {
@@ -59,11 +73,27 @@ function compare(node: unknown, ref: unknown, file: string, keyPath: string, dif
     const all = new Set([...nk, ...rk]);
     for (const k of all) {
       if (!(k in (node as object))) {
-        diffs.push({ file, keyPath: `${keyPath}.${k}`, node: "<missing>", ref: (ref as Record<string, unknown>)[k] });
+        diffs.push({
+          file,
+          keyPath: `${keyPath}.${k}`,
+          node: "<missing>",
+          ref: (ref as Record<string, unknown>)[k],
+        });
       } else if (!(k in (ref as object))) {
-        diffs.push({ file, keyPath: `${keyPath}.${k}`, node: (node as Record<string, unknown>)[k], ref: "<missing>" });
+        diffs.push({
+          file,
+          keyPath: `${keyPath}.${k}`,
+          node: (node as Record<string, unknown>)[k],
+          ref: "<missing>",
+        });
       } else {
-        compare((node as Record<string, unknown>)[k], (ref as Record<string, unknown>)[k], file, `${keyPath}.${k}`, diffs);
+        compare(
+          (node as Record<string, unknown>)[k],
+          (ref as Record<string, unknown>)[k],
+          file,
+          `${keyPath}.${k}`,
+          diffs,
+        );
       }
     }
     return;
@@ -91,24 +121,40 @@ function main(): number {
   const onlyNode: string[] = [];
   const onlyRef: string[] = [];
   for (const f of [...allFiles].sort()) {
-    if (!nodeFiles.has(f)) { onlyRef.push(f); continue; }
-    if (!refFiles.has(f)) { onlyNode.push(f); continue; }
+    if (!nodeFiles.has(f)) {
+      onlyRef.push(f);
+      continue;
+    }
+    if (!refFiles.has(f)) {
+      onlyNode.push(f);
+      continue;
+    }
     compare(nodeFiles.get(f), refFiles.get(f), f, "", diffs);
   }
 
-  process.stdout.write(`\nfiles: ${nodeFiles.size} node / ${refFiles.size} ref\n`);
-  if (onlyRef.length) process.stdout.write(`MISSING in node: ${onlyRef.join(", ")}\n`);
-  if (onlyNode.length) process.stdout.write(`EXTRA in node: ${onlyNode.join(", ")}\n`);
+  process.stdout.write(
+    `\nfiles: ${nodeFiles.size} node / ${refFiles.size} ref\n`,
+  );
+  if (onlyRef.length)
+    process.stdout.write(`MISSING in node: ${onlyRef.join(", ")}\n`);
+  if (onlyNode.length)
+    process.stdout.write(`EXTRA in node: ${onlyNode.join(", ")}\n`);
   if (diffs.length) {
     process.stdout.write(`\n${diffs.length} value mismatch(es):\n`);
     for (const d of diffs.slice(0, 40)) {
-      process.stdout.write(`  ${d.file} ${d.keyPath}: node=${JSON.stringify(d.node)} ref=${JSON.stringify(d.ref)}\n`);
+      process.stdout.write(
+        `  ${d.file} ${d.keyPath}: node=${JSON.stringify(d.node)} ref=${JSON.stringify(d.ref)}\n`,
+      );
     }
-    if (diffs.length > 40) process.stdout.write(`  … and ${diffs.length - 40} more\n`);
+    if (diffs.length > 40)
+      process.stdout.write(`  … and ${diffs.length - 40} more\n`);
   }
 
-  const ok = diffs.length === 0 && onlyRef.length === 0 && onlyNode.length === 0;
-  process.stdout.write(`\nparity: ${ok ? "PASS — outputs match the reference" : "FAIL"}\n`);
+  const ok =
+    diffs.length === 0 && onlyRef.length === 0 && onlyNode.length === 0;
+  process.stdout.write(
+    `\nparity: ${ok ? "PASS — outputs match the reference" : "FAIL"}\n`,
+  );
   fs.rmSync(tmp, { recursive: true, force: true });
   return ok ? 0 : 1;
 }

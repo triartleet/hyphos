@@ -7,7 +7,10 @@ LOCAL="$(dirname "$0")/pre-push.local"
 if [ -x "$LOCAL" ]; then
   "$LOCAL" "$@" || exit 1
 fi
-echo "› no package scripts — shell is this repo's checkable surface"
+echo "› npm run format:check"
+npm run format:check || exit 1
+echo "› npm run typecheck"
+npm run typecheck || exit 1
 # Shell correctness. Scripts are discovered by shebang over TRACKED files at push time, so a
 # script added later is covered without regenerating this hook.
 if command -v shellcheck >/dev/null 2>&1; then
@@ -34,8 +37,8 @@ else
 fi
 
 if command -v etymd >/dev/null 2>&1; then
-  echo "› etymd audit --fail-on gap"
-  etymd audit --no-ledger --fail-on gap || exit 1
+  echo "› etymd audit --fail-on risk"
+  etymd audit --no-ledger --fail-on risk || exit 1
 else
   echo "› etymd audit skipped (not on PATH)"
 fi
@@ -49,4 +52,4 @@ if [ -x "$GATE" ] && [ "${CONTENT_GATE_PREPUSH:-1}" = "1" ]; then
 fi
 
 exit 0
-# etymd:generated pack-v7 aab3b7c6c22ba869
+# etymd:generated pack-v7 5f3e67a431729d95

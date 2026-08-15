@@ -26,13 +26,39 @@ interface StageCfg {
 }
 
 const stages: StageCfg[] = [
-  { name: "curate", inputs: ["raw-sessions.jsonl"], run: () => runCurate([]), jsonlOutputs: ["curated.jsonl", "quarantine.jsonl"], fileOutputs: ["stats-curated.md"] },
-  { name: "tag", inputs: ["curated.jsonl"], run: () => runTag([]), jsonlOutputs: ["tagged.jsonl"] },
-  { name: "salvage", inputs: ["quarantine.jsonl", "curated.jsonl"], run: () => runSalvage([]), jsonlOutputs: ["salvaged.jsonl"] },
-  { name: "ingest-chat", inputs: ["inbox"], run: () => runIngestChat([]), jsonlOutputs: ["chat-facebook.jsonl"] },
+  {
+    name: "curate",
+    inputs: ["raw-sessions.jsonl"],
+    run: () => runCurate([]),
+    jsonlOutputs: ["curated.jsonl", "quarantine.jsonl"],
+    fileOutputs: ["stats-curated.md"],
+  },
+  {
+    name: "tag",
+    inputs: ["curated.jsonl"],
+    run: () => runTag([]),
+    jsonlOutputs: ["tagged.jsonl"],
+  },
+  {
+    name: "salvage",
+    inputs: ["quarantine.jsonl", "curated.jsonl"],
+    run: () => runSalvage([]),
+    jsonlOutputs: ["salvaged.jsonl"],
+  },
+  {
+    name: "ingest-chat",
+    inputs: ["inbox"],
+    run: () => runIngestChat([]),
+    jsonlOutputs: ["chat-facebook.jsonl"],
+  },
   // ingest_email writes ONLY email-sent.jsonl; any email-formal/informal in a
   // corpus are stale artifacts from an older pipeline, not this stage's output.
-  { name: "ingest-email", inputs: ["inbox"], run: () => runIngestEmail([]), jsonlOutputs: ["email-sent.jsonl"] },
+  {
+    name: "ingest-email",
+    inputs: ["inbox"],
+    run: () => runIngestEmail([]),
+    jsonlOutputs: ["email-sent.jsonl"],
+  },
 ];
 
 function copyInto(src: string, dst: string): void {
@@ -51,7 +77,8 @@ function main(): number {
   for (const st of stages) {
     process.stdout.write(`\n== ${st.name} ==\n`);
     const tmp = fs.mkdtempSync(path.join(os.tmpdir(), `hyphos-${st.name}-`));
-    for (const inp of st.inputs) copyInto(path.join(ref, inp), path.join(tmp, inp));
+    for (const inp of st.inputs)
+      copyInto(path.join(ref, inp), path.join(tmp, inp));
     process.env.HYPHOS_CORPUS = tmp;
     const savedStdout = process.stdout.write.bind(process.stdout);
     // Silence the stage's own aggregate stdout during the parity run.
@@ -60,7 +87,8 @@ function main(): number {
     try {
       rc = st.run();
     } finally {
-      (process.stdout as unknown as { write: typeof savedStdout }).write = savedStdout;
+      (process.stdout as unknown as { write: typeof savedStdout }).write =
+        savedStdout;
     }
     if (rc !== 0) {
       process.stdout.write(`  run exited ${rc}\n`);
@@ -71,7 +99,11 @@ function main(): number {
       const seen = new Set(outs);
       for (const dir of [ref, tmp]) {
         for (const f of fs.existsSync(dir) ? fs.readdirSync(dir) : []) {
-          if (f.startsWith(st.globOutputs) && f.endsWith(".jsonl") && !seen.has(f)) {
+          if (
+            f.startsWith(st.globOutputs) &&
+            f.endsWith(".jsonl") &&
+            !seen.has(f)
+          ) {
             seen.add(f);
             outs.push(f);
           }
@@ -79,14 +111,23 @@ function main(): number {
       }
     }
     for (const out of outs) {
-      const ok = reportDiffs(out, diffJsonl(path.join(tmp, out), path.join(ref, out)));
+      const ok = reportDiffs(
+        out,
+        diffJsonl(path.join(tmp, out), path.join(ref, out)),
+      );
       allOk = allOk && ok;
     }
     for (const out of st.fileOutputs ?? []) {
-      const a = fs.existsSync(path.join(tmp, out)) ? fs.readFileSync(path.join(tmp, out), "utf8") : "<missing>";
-      const b = fs.existsSync(path.join(ref, out)) ? fs.readFileSync(path.join(ref, out), "utf8") : "<missing>";
+      const a = fs.existsSync(path.join(tmp, out))
+        ? fs.readFileSync(path.join(tmp, out), "utf8")
+        : "<missing>";
+      const b = fs.existsSync(path.join(ref, out))
+        ? fs.readFileSync(path.join(ref, out), "utf8")
+        : "<missing>";
       const ok = a === b;
-      process.stdout.write(`  ${out}: ${ok ? "PASS (byte-identical)" : "FAIL (differs)"}\n`);
+      process.stdout.write(
+        `  ${out}: ${ok ? "PASS (byte-identical)" : "FAIL (differs)"}\n`,
+      );
       allOk = allOk && ok;
     }
     fs.rmSync(tmp, { recursive: true, force: true });

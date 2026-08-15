@@ -47,7 +47,8 @@ export function sentencesOf(text: string): string[] {
 // 0x1c–0x1f and 0x20, NEL 0x85, plus the Unicode White_Space characters — but
 // NOT the BOM (0xFEFF), which JS `\s` wrongly includes. Matching this exactly
 // keeps word counts identical to the reference.
-const PY_WS = "\\t\\n\\x0b\\f\\r\\x1c\\x1d\\x1e\\x1f \\x85\\xa0\\u1680\\u2000-\\u200a\\u2028\\u2029\\u202f\\u205f\\u3000";
+const PY_WS =
+  "\\t\\n\\x0b\\f\\r\\x1c\\x1d\\x1e\\x1f \\x85\\xa0\\u1680\\u2000-\\u200a\\u2028\\u2029\\u202f\\u205f\\u3000";
 const PY_WS_SPLIT = new RegExp(`[${PY_WS}]+`);
 const PY_WS_TRIM = new RegExp(`^[${PY_WS}]+|[${PY_WS}]+$`, "g");
 
