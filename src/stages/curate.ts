@@ -107,7 +107,7 @@ export function runCurate(argv: string[]): number {
   const corpus = corpusDir();
   const src = path.join(corpus, "raw-sessions.jsonl");
   if (!fs.existsSync(src) || !fs.statSync(src).isFile()) {
-    process.stderr.write(`missing ${src} — run extract_corpus.py first\n`);
+    process.stderr.write(`missing ${src} — run hyphos extract first\n`);
     return 1;
   }
 
