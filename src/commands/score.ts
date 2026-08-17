@@ -105,7 +105,7 @@ export function loadFingerprint(register: string): Record<string, unknown> {
     raw = fs.readFileSync(fp, "utf8");
   } catch {
     throw new SysExit(
-      `no fingerprint for register '${register}' — run bin/profile_fingerprint.py`,
+      `no fingerprint for register '${register}' — run hyphos fingerprint`,
     );
   }
   return pyJsonParse(raw) as Record<string, unknown>;

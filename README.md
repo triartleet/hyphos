@@ -20,9 +20,15 @@ This is the Node/TypeScript implementation, distributed on npm and runnable with
 `npx`. It is a parity port of the original Python tool: same measurements, same
 outputs, verified against the reference stage by stage.
 
-**Status: early.** Corpus extraction, curation, register tagging, chat/email
-ingest and stylometric fingerprints work today; the rewrite backend and the
-fidelity score are in progress.
+**Status: working end to end, with named rough edges.** The corpus pipeline —
+extraction, curation, register tagging, chat/email ingest, stylometric
+fingerprints — and the output side both run today: `rewrite` (a model pass
+over your own claude CLI or Anthropic API credentials, then the deterministic
+enforcement pass), `score` (the model-free fidelity v1, plus the model-judged
+half via `score --judge`), `blind` self-tests, and the local web app
+(`serve`). Still open: score calibration, fingerprint refinements (sentence
+splitting, email quote-fragment cleanup, per-register typo rate), and the
+`--typos natural` rewrite mode — see the [roadmap](ROADMAP.md).
 
 ## What it does
 
@@ -47,8 +53,10 @@ npx hyphos fingerprint        # compute stylometric fingerprints per register
 npx hyphos rules --test       # self-test the deterministic enforcement rules
 ```
 
-Corpus output lands in `corpus/` and profiles in `profiles/` (both under the
-current directory; override with `HYPHOS_CORPUS` / `HYPHOS_PROFILES`). Stdout
+Corpus output lands in `corpus/` and profiles in `profiles/` under the
+package root (resolved from the CLI's own location, so commands work from any
+directory); point `HYPHOS_HOME` at another location to relocate both, or
+`HYPHOS_CORPUS` / `HYPHOS_PROFILES` to override one. Stdout
 prints aggregate numbers only — never your text — so it is safe to share.
 
 ## Non-English writing

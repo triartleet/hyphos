@@ -1,7 +1,7 @@
 {
   "name": "hyphos",
   "version": "0.1.0",
-  "description": "Rewrite any AI draft so it reads as written by you — register-aware voice profiles built from your own writing, with deterministic quirk enforcement and a fidelity score.",
+  "description": "Rewrite any AI draft so it reads as written by you \u2014 register-aware voice profiles built from your own writing, with deterministic quirk enforcement and a fidelity score.",
   "type": "module",
   "bin": {
     "hyphos": "./dist/cli.js"
@@ -41,16 +41,16 @@
   "dependencies": {
     "adm-zip": "0.6.0",
     "commander": "12.1.0",
-    "mailparser": "3.7.1",
+    "mailparser": "3.9.15",
     "picocolors": "1.1.1"
   },
   "devDependencies": {
     "@changesets/cli": "^3.0.0",
-    "@types/mailparser": "3.4.5",
+    "@types/mailparser": "3.4.6",
     "@types/node": "22.10.2",
     "prettier": "3.4.2",
-    "tsup": "8.3.5",
-    "tsx": "4.19.2",
+    "tsup": "8.5.1",
+    "tsx": "4.23.12",
     "typescript": "5.7.2",
     "vitest": "4.1.10"
   }

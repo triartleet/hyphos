@@ -235,9 +235,7 @@ export function runTag(argv: string[]): number {
   const corpus = corpusDir();
   const src = path.join(corpus, "curated.jsonl");
   if (!fs.existsSync(src) || !fs.statSync(src).isFile()) {
-    process.stderr.write(
-      "missing curated.jsonl — run curate_corpus.py first\n",
-    );
+    process.stderr.write("missing curated.jsonl — run hyphos curate first\n");
     return 1;
   }
 

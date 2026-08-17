@@ -11,9 +11,9 @@
  * aggregate counts plus a suggestion once enough negative evidence accumulates.
  *
  * Divergence note: the reference serves static files from the repository root's
- * `web/` directory (relative to the script). This port, consistent with the
- * cwd-based corpus/profiles defaults, serves from `$HYPHOS_WEB` or `./web` under
- * the current working directory.
+ * `web/` directory (relative to the script). This port serves from
+ * `$HYPHOS_WEB` or `./web` under the current working directory (unlike
+ * corpus/profiles, which resolve from the package root via ../lib/paths).
  */
 import http from "node:http";
 import fs from "node:fs";
