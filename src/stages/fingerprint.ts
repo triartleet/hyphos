@@ -1,8 +1,7 @@
 /**
  * Stage 1b — stylometric fingerprints per register bucket. Model-free
- * measurements of how the user writes. Faithful port of the reference
- * `profile_fingerprint.py`; all numeric behavior goes through the parity-matched
- * helpers in ../lib.
+ * measurements of how the user writes; all numeric behavior goes through the
+ * shared helpers in ../lib.
  *
  * Non-English chat (greeklish + Greek) is pooled per source into a rhythm-only
  * fingerprint: it contributes rhythm, punctuation and casing habits, never
@@ -129,7 +128,7 @@ function dictionary(): Set<string> {
 
 const EDIT_LETTERS = "abcdefghijklmnopqrstuvwxyz'";
 
-// Yields edit-distance-1 forms in the reference order: deletes, swaps, replaces,
+// Yields edit-distance-1 forms in a fixed order: deletes, swaps, replaces,
 // inserts. Order matters — the first dictionary hit wins.
 function* edit1Forms(w: string): Generator<string> {
   const splits: [string, string][] = [];

@@ -1,6 +1,6 @@
 /**
  * Stage 1a — tag each curated message with a register (the mode the person is
- * writing in). Faithful port of the reference `tag_registers.py`.
+ * writing in).
  *
  * v1 buckets:
  * - technical-instruction — telling an agent/tool what to do: imperatives, task
@@ -146,14 +146,14 @@ const DISCOURSE = new Set([
   "while",
 ]);
 
-// `\b(...)\b` from the reference. JS `\b` is ASCII-only, so the word boundaries
-// are expressed as look-arounds over Python's `\w` class (`[\p{L}\p{N}_]`) to
-// stay Unicode-aware; `i` = case-insensitive, `g` = count every match.
+// JS `\b` is ASCII-only, so the word boundaries are expressed as look-arounds
+// over the Unicode word class (`[\p{L}\p{N}_]`); `i` = case-insensitive,
+// `g` = count every match.
 const INSTRUCTION_RE =
   /(?<![\p{L}\p{N}_])(i want|i need|i would like|can you|could you|let'?s|we (should|want|need)|please|make sure|instead of|proceed|continue)(?![\p{L}\p{N}_])/giu;
 // `re.findall(r"[a-zA-Z']+", text.lower())` — ASCII letter/apostrophe runs. Kept
-// distinct from the shared `words`/`latinLowerWords` helpers: the reference uses
-// this exact class (it includes the apostrophe, which `latinLowerWords` omits).
+// distinct from the shared `words`/`latinLowerWords` helpers: this exact class
+// includes the apostrophe, which `latinLowerWords` omits.
 const WORD_TOKEN_RE = /[a-zA-Z']+/g;
 // `re.split(r"[.!?\n]+", text)` — sentence-ish fragments (not the shared
 // `sentencesOf`, which splits differently).
@@ -181,7 +181,7 @@ export function scores(text: string): RegisterScores {
     .filter((s) => s.trim().length > 0);
   const nSent = Math.max(sentences.length, 1);
 
-  // Unique first word of each sentence (a `set` in the reference).
+  // Unique first word of each sentence.
   const firstWords = new Set<string>();
   for (const s of sentences) {
     const toks = s.toLowerCase().match(WORD_TOKEN_RE);
@@ -204,7 +204,7 @@ export function scores(text: string): RegisterScores {
 
   let discourseCount = 0;
   for (const w of wordsList) if (DISCOURSE.has(w)) discourseCount++;
-  // Operation order matches the reference exactly for bit-identical float parity.
+  // Operation order is fixed for bit-identical float results.
   const editorial =
     (discourseCount / n) * 5 +
     (sentences.length >= 4 ? 0.4 : 0) +

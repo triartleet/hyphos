@@ -1,18 +1,18 @@
 {
   "packVersion": "7",
   "etymdVersion": "0.10.0",
-  "approvedAt": "2026-08-15T19:07:31.943Z",
+  "approvedAt": "2026-08-17T17:18:30.810Z",
   "profile": "solo",
   "facts": {
     "etymdVersion": "0.10.0",
     "packVersion": "7",
-    "generatedAt": "2026-08-15T19:07:31.941Z",
+    "generatedAt": "2026-08-17T17:18:30.808Z",
     "root": ".",
     "name": "hyphos",
     "git": {
       "isRepo": true,
       "branch": "main",
-      "head": "7f62d72",
+      "head": "21f1b97",
       "hooksPath": ".githooks",
       "husky": false,
       "recentAuthors": 1
@@ -33,7 +33,6 @@
         "typecheck": "tsc --noEmit",
         "test": "vitest run",
         "test:watch": "vitest",
-        "parity": "node --import tsx parity/run.ts",
         "format": "prettier --write .",
         "format:check": "prettier --check .",
         "prepare": "npm run build",
@@ -204,12 +203,12 @@
       "scripts": 4
     },
     "freshness": {
-      "repoLastCommit": "2026-08-15T21:07:00+02:00",
+      "repoLastCommit": "2026-08-17T19:01:51+02:00",
       "artifacts": [
         {
           "artifactId": "decisions",
           "path": "DECISIONS.md",
-          "lastCommit": "2026-08-15T20:21:11+02:00",
+          "lastCommit": "2026-08-17T18:38:10+02:00",
           "commitsSince": true
         }
       ],
@@ -222,15 +221,19 @@
           "files": 30
         },
         {
+          "name": "corpus",
+          "files": 24
+        },
+        {
           "name": "src",
           "files": 21
         },
         {
-          "name": "corpus",
-          "files": 20
+          "name": ".changeset",
+          "files": 9
         },
         {
-          "name": "parity",
+          "name": "test",
           "files": 4
         },
         {
@@ -240,14 +243,6 @@
         {
           "name": ".githooks",
           "files": 3
-        },
-        {
-          "name": "test",
-          "files": 3
-        },
-        {
-          "name": ".changeset",
-          "files": 2
         },
         {
           "name": "media",

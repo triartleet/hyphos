@@ -14,10 +14,9 @@
  * a register tag. Stdout is aggregate-only (counts and word totals — never any
  * corpus text), preserving the privacy invariant.
  *
- * Faithful port of the reference `salvage_quarantine.py`. The register scorer
- * (`scores`) is imported from the register-tagging stage in Python; that stage is
- * not yet ported here, so its logic is inlined below verbatim. When it is ported,
- * this copy should be replaced by an import to keep a single source of truth.
+ * The register scorer (`scores`) is inlined verbatim from the register-tagging
+ * stage's scorer; an import would keep a single source of truth and can replace
+ * this copy if the duplication ever drifts.
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -50,16 +49,15 @@ const CORRESPONDENCE_RE =
   /^(?:dear |hi |hello |greetings|kind regards|best regards|thanks,|regards,)/i;
 
 // Openings that read as document structure (markdown heading, list item, table
-// row, quote). `\p{Nd}` matches Python `\d` (Unicode decimal digits); no `i`
-// flag, matching the reference. Anchored at the start.
+// row, quote). `\p{Nd}` matches Python `\d` (Unicode decimal digits);
+// case-sensitive. Anchored at the start.
 const DOCLIKE_RE = /^(?:#{1,6} |\p{Nd}+\.\s|\* |- |\||>)/u;
 
 /**
  * A paragraph counts as typed-flavored when it is 4..max_words words long, does
  * not open like correspondence or document structure, and contains at least one
- * instruction phrase. Mirrors `typed_flavored` in the reference exactly:
- * the word-count and open-shape checks use the stripped paragraph, but the
- * instruction search runs over the paragraph as given.
+ * instruction phrase: the word-count and open-shape checks use the stripped
+ * paragraph, but the instruction search runs over the paragraph as given.
  */
 function typedFlavored(par: string, maxWords: number): boolean {
   const w = whitespaceSplit(par); // Python str.split() (no arg)
@@ -78,7 +76,7 @@ function typedFlavored(par: string, maxWords: number): boolean {
  */
 function salvage(text: string): string | null {
   const paras = text
-    .split(/\n\s*\n/) // blank-line paragraph split (matches the reference)
+    .split(/\n\s*\n/) // blank-line paragraph split
     .map((p) => p.trim())
     .filter((p) => p.length > 0);
   if (paras.length < 2) return null;
@@ -149,7 +147,7 @@ function readJsonl(file: string): Record<string, unknown>[] {
 
 /**
  * Stage entry point. `argv` is accepted for a uniform CLI signature but unused:
- * the reference takes no arguments and reads corpus paths from the environment.
+ * the stage takes no arguments and reads corpus paths from the environment.
  */
 export function runSalvage(argv: string[]): number {
   void argv;

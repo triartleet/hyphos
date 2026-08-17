@@ -224,3 +224,22 @@ ranges — each move risk onto the parity-governed ingest path or desynchronize
 the lockfile, to dodge crash-class flaws with near-zero reach. Both clear as
 plain in-range updates the moment upstream ships; until then `npm audit`
 reads 4 findings (1 low, 3 high) by design, not by oversight.
+
+### D-013 — Parity harness retired; the project presents as itself
+
+**Scope:** repo · **Decided:** 2026-08-17
+
+The cutover the parity harness gated is complete — the final recheck passed
+the same day, with the ingest stages and fingerprint outputs verified against
+freshly regenerated reference outputs — so the harness, its npm script, its
+documentation, and the stored reference artifacts are removed. The repo no
+longer frames itself as a port: no "reference implementation" or parity
+vocabulary remains in code, tests, or docs; one past-tense sentence in the
+README and this decisions log carry the history. Comments naming Python APIs
+(`str.split`'s whitespace set, `zf.namelist()` ordering, `round(x, ndigits)`)
+stay deliberately: they document the exact semantics the code implements,
+not the project's origin.
+
+**Why:** a public project should read as one implementation with one history,
+not as half of a comparison; the transition's scaffolding had no job left
+once its last verification duty was discharged.

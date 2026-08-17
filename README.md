@@ -17,8 +17,9 @@ posts — preserves your quirk-level habits with enforcement rules a model can't
 drift away from, and scores every output for how much it actually sounds like you.
 
 This is the Node/TypeScript implementation, distributed on npm and runnable with
-`npx`. It is a parity port of the original Python tool: same measurements, same
-outputs, verified against the reference stage by stage.
+`npx`. The tool began life as a Python pipeline and was ported to TypeScript
+with stage-by-stage output verification at cutover; the porting harness was
+removed once the port was proven.
 
 **Status: working end to end, with named rough edges.** The corpus pipeline —
 extraction, curation, register tagging, chat/email ingest, stylometric
@@ -75,32 +76,9 @@ stage) use your own credentials.
 
 ```sh
 npm install
-npm test          # unit + parity-anchor tests
+npm test          # unit tests
 npm run build     # bundle to dist/ (the published CLI)
-npm run parity    # diff outputs against a reference implementation (see parity/)
 ```
-
-### Regenerating the parity reference
-
-The reference implementation is the retired pre-port Python pipeline, kept in
-this repo's git history (stdlib-only, no dependencies). To regenerate the
-reference outputs it compares against: extract it at the commit before the
-port (`git archive <pre-port-sha> -- bin | tar -x -C <sandbox>`), copy the
-corpus inputs into `<sandbox>/corpus/`, and run the stage scripts there with
-`python3`; each writes into the sandbox, never the live corpus. The gates are
-then env-configured:
-
-```sh
-HYPHOS_REF_CORPUS=corpus/reference-python/stage-corpus \
-  node --import tsx parity/stages.ts   # per-stage outputs (curate…ingest)
-HYPHOS_CORPUS=corpus HYPHOS_REF_PROFILES=corpus/reference-python/profiles \
-  npm run parity                       # fingerprint profiles
-```
-
-Reference outputs are snapshots: if the corpus inputs change (a new export),
-regenerate. Post-port behavior changes (the AI-marker corpus exclusion,
-platform-normalized source names, rhythm-only profiles for non-English
-registers) are expected to diff against the reference by design.
 
 Roadmap: [ROADMAP.md](ROADMAP.md) · Decisions: [DECISIONS.md](DECISIONS.md)
 

@@ -45,8 +45,8 @@ export function sentencesOf(text: string): string[] {
 
 // Python `str.split()` whitespace set (Py_UNICODE_ISSPACE): ASCII 0x09–0x0d,
 // 0x1c–0x1f and 0x20, NEL 0x85, plus the Unicode White_Space characters — but
-// NOT the BOM (0xFEFF), which JS `\s` wrongly includes. Matching this exactly
-// keeps word counts identical to the reference.
+// NOT the BOM (0xFEFF), which JS `\s` wrongly includes. Matching this set
+// exactly keeps word counts stable.
 const PY_WS =
   "\\t\\n\\x0b\\f\\r\\x1c\\x1d\\x1e\\x1f \\x85\\xa0\\u1680\\u2000-\\u200a\\u2028\\u2029\\u202f\\u205f\\u3000";
 const PY_WS_SPLIT = new RegExp(`[${PY_WS}]+`);
@@ -60,8 +60,8 @@ export function whitespaceSplit(s: string): string[] {
 
 /**
  * Undo Meta's mojibake: it writes UTF-8 bytes escaped as latin-1, so text
- * arrives double-encoded. Faithful port of `s.encode("latin-1").decode("utf-8")`
- * with the Python fallback-on-error behavior.
+ * arrives double-encoded. Implements `s.encode("latin-1").decode("utf-8")`
+ * with fallback-on-error.
  */
 export function demojibake(s: string): string {
   // encode("latin-1") raises if any code point exceeds 0xFF — properly-encoded

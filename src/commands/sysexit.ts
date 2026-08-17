@@ -1,11 +1,10 @@
 /**
- * A tiny error type that mirrors Python's `sys.exit("message")`.
+ * A tiny error type for bail-out exits with a message, mirroring Python's
+ * `sys.exit("message")` semantics.
  *
- * In the reference CLI several helpers call `sys.exit(msg)` deep in the call
- * stack. That raises `SystemExit`, which the local web server catches and turns
- * into an HTTP 502, while the command-line path lets it print the message to
- * stderr and exit with status 1. `SysExit` carries the same string so both
- * surfaces can reproduce that behaviour exactly.
+ * Several helpers abort deep in the call stack by raising it; the local web
+ * server catches the raise and turns it into an HTTP 502, while the
+ * command-line path prints the message to stderr and exits with status 1.
  */
 export class SysExit extends Error {
   constructor(message: string) {

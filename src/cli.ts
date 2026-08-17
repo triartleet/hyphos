@@ -2,10 +2,9 @@
  * hyphos command-line entry — rewrite AI drafts in your own voice, with receipts.
  *
  * This is the central wiring file. It maps subcommands to the run functions that
- * live in ./commands (the model-free and model-driven CLI features ported from
- * the reference Python) and ./stages (the corpus pipeline stages). The ported
- * native commands (rewrite, enforce, score, blind, serve, rules) mirror the
- * reference argparse setup — same flags, defaults, and choices. The pipeline
+ * live in ./commands (the model-free and model-driven CLI features) and
+ * ./stages (the corpus pipeline stages). The native commands (rewrite, enforce,
+ * score, blind, serve, rules) share one flag and default convention. The pipeline
  * stages receive their raw argument list unchanged so each can parse its own
  * options, matching the convention `runX(argv): number`.
  *
@@ -32,7 +31,7 @@ program
   .name("hyphos")
   .description("rewrite AI drafts in your own voice, with receipts");
 
-// ---- ported native commands (mirror the reference argparse) ----
+// ---- native commands ----
 
 program
   .command("rewrite")
@@ -141,7 +140,7 @@ async function main(): Promise<void> {
   try {
     await program.parseAsync(process.argv);
   } catch (e) {
-    // Reproduce Python `sys.exit("message")`: print to stderr and exit 1.
+    // SysExit convention: print the message to stderr and exit 1.
     if (e instanceof SysExit) {
       process.stderr.write(e.message + "\n");
       process.exit(1);

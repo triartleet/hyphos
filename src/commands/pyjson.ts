@@ -1,15 +1,15 @@
 /**
- * JSON helpers that reproduce Python's `json` module byte-for-byte, because the
- * parity harness diffs this tool's stdout and file output against the reference.
+ * JSON helpers that reproduce Python's `json` module byte-for-byte; this tool's
+ * stdout and file output formats follow that convention.
  * Two behaviours differ from the JavaScript built-ins and matter here:
  *
  *  1. Python prints floats and ints differently: `json.dumps(100.0)` is
  *     `"100.0"` but `json.dumps(100)` is `"100"`. JavaScript has one number type,
  *     so a value that must render as a float is wrapped in `PyFloat`.
  *  2. `json.dumps` escapes non-ASCII by default (`ensure_ascii=True` → an em dash
- *     becomes `—`); the reference uses that default for stdout reports and
- *     `ensure_ascii=False` (literal text) for files and the web server. Both are
- *     supported here via the `ensureAscii` option.
+ *     becomes `—`); stdout reports use that default, while files and the web
+ *     server use `ensure_ascii=False` (literal text). Both are supported here
+ *     via the `ensureAscii` option.
  *
  * The indent/compact separators also match Python: indented output uses `","`
  * between items, compact output uses `", "` (and always `": "` after a key).

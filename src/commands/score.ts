@@ -3,11 +3,10 @@
  *
  * `score` measures how close a text sits to a register's stylometric
  * fingerprint (punctuation rates, sentence length, casing, contractions) and
- * folds in a model-ism penalty from the deterministic enforcement pass. It is a
- * faithful port of the reference `text_metrics`/`score`, including the
- * short-text damping and the honest low-confidence note. All rounding goes
- * through the parity-matched `pyRound`, and numbers that Python renders as
- * floats are wrapped in `PyFloat` so the JSON output matches byte-for-byte.
+ * folds in a model-ism penalty from the deterministic enforcement pass, with
+ * short-text damping and an honest low-confidence note. All rounding goes
+ * through `pyRound`, and numbers rendered as floats are wrapped in `PyFloat`
+ * so the JSON output is stable byte-for-byte.
  *
  * `registers_info`/`infer_register` are ported here too since inference ranks
  * registers by their `score` fidelity.
@@ -23,8 +22,8 @@ import { SysExit } from "./sysexit.js";
 
 const CONTRACTION_RE = /\b\w+'(?:s|t|re|ve|ll|d|m)\b/gi;
 
-// The six stylometric metrics, in the order the reference builds them (this
-// order is the JSON key order of `metric_deltas`).
+// The six stylometric metrics; this order is the JSON key order of
+// `metric_deltas`.
 const METRIC_KEYS = [
   "emdash_per_1k",
   "comma_per_1k",
@@ -97,7 +96,7 @@ export function textMetrics(text: string): Record<MetricKey, number> {
   };
 }
 
-/** Read a register's fingerprint, preserving int/float distinction for parity. */
+/** Read a register's fingerprint, preserving the int/float distinction. */
 export function loadFingerprint(register: string): Record<string, unknown> {
   const fp = path.join(profilesDir(), register, "fingerprint.json");
   let raw: string;

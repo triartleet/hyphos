@@ -57,7 +57,7 @@ export { blind, runBlind } from "./commands/blind.js";
 export { serve, runServe, recordFeedback } from "./commands/serve.js";
 export type { FeedbackResult } from "./commands/serve.js";
 
-// JSON helpers with Python-matching semantics (used across the ports).
+// Canonical JSON helpers — the tool's stable output format.
 export { PyFloat, pyDumps, pyJsonParse } from "./commands/pyjson.js";
 export { SysExit } from "./commands/sysexit.js";
 

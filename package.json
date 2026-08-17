@@ -17,7 +17,6 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "parity": "node --import tsx parity/run.ts",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "prepare": "npm run build",

@@ -1,7 +1,6 @@
 /**
- * Numeric helpers with Python-matching semantics. Parity with the reference
- * Python implementation depends on these being exact, so the differences from
- * the JS defaults are deliberate:
+ * Numeric helpers with Python-matching semantics — the tool's outputs depend
+ * on these being exact, so the differences from the JS defaults are deliberate:
  *
  * - `pyRound` reproduces Python's round-half-to-even ("banker's rounding");
  *   `Math.round` rounds half up, which would drift every stylometric ratio.

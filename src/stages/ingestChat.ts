@@ -1,6 +1,5 @@
 /**
  * Stage 0 — ingest chat exports (Meta/Instagram JSON) as corpus material.
- * Faithful port of the reference `ingest_chat.py`.
  *
  * Reads `corpus/inbox/*.zip` archives holding Meta-style message threads
  * (`.../inbox/<thread>/message_*.json` with `participants` and `messages`
@@ -65,13 +64,13 @@ function zipStem(name: string): string {
 type ThreadEntry = [string, Record<string, unknown>];
 
 /**
- * Yield `[source, thread]` for every Meta message file found, in the reference's
+ * Yield `[source, thread]` for every Meta message file found, in a fixed
  * order: all `*.zip` archives first (sorted by name), then bare `message_*.json`
  * files (sorted). Within a zip, entries are visited in stored (central-directory)
  * order to match Python's `zf.namelist()` — adm-zip only sorts on write, and
  * `noSort` keeps that guarantee explicit.
  *
- * The archive open is deliberately UNGUARDED (as in the reference): a corrupt or
+ * The archive open is deliberately UNGUARDED: a corrupt or
  * non-zip `*.zip` file raises and aborts the run rather than being silently
  * skipped. Only the per-entry read + JSON parse is guarded (bad entry → skip).
  */
@@ -111,13 +110,13 @@ function iterThreads(inbox: string): ThreadEntry[] {
 }
 
 /**
- * Serialize one JSONL record exactly as the reference does:
- *   `json.dumps({...}, ensure_ascii=False)`.
+ * Serialize one JSONL record in the canonical format:
+ *   `json.dumps({...}, ensure_ascii=False)` semantics.
  *
- * PARITY NOTE: `json.dumps` with neither `indent` nor `separators` uses the
- * defaults `(", ", ": ")` — a SPACE after every comma and colon. A bare
- * `JSON.stringify(obj)` emits none of those spaces and would therefore NOT
- * byte-match the Python reference, so we assemble the line with the same
+ * FORMAT NOTE: the corpus line format follows `json.dumps` with neither
+ * `indent` nor `separators` — the defaults `(", ", ": ")`, a SPACE after every
+ * comma and colon. A bare `JSON.stringify(obj)` emits none of those spaces, so
+ * the line is assembled with the same
  * separators and the same key order (ts, source, lang, words, text). Each value
  * still goes through `JSON.stringify`, whose string escaping matches
  * `json.dumps(ensure_ascii=False)` for realistic text (short control-char forms
@@ -140,7 +139,7 @@ function jsonlLine(
 }
 
 export function runIngestChat(argv: string[]): number {
-  void argv; // accepted for CLI uniformity; the reference's main() takes no args.
+  void argv; // accepted for CLI uniformity; the stage takes no arguments.
 
   const corpus = corpusDir();
   const inbox = path.join(corpus, "inbox");
@@ -175,7 +174,7 @@ export function runIngestChat(argv: string[]): number {
 
   // One open file handle per source, created (and truncated) the first time a
   // thread of that source is seen — so a source that contributes no kept
-  // messages still leaves an empty chat-<source>.jsonl, as in the reference.
+  // messages still leaves an empty chat-<source>.jsonl.
   const fds = new Map<string, number>();
   let kept = 0;
   const wordsByLang = new Map<Lang, number>();

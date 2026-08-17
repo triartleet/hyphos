@@ -4,11 +4,10 @@
  * Every content-adaptation operation is a declared rule with an id, a kind, a
  * regular-expression pattern, and its own test cases. The engine applies the
  * rules in listed order (deterministic), reports per-rule counts, and the
- * self-test verifies every rule against its cases. This is a faithful port of
- * the reference `RULES`/`load_rules`/`enforce`/`rules_selftest` — the patterns,
- * their order, and their tests are preserved exactly, except the em-dash
- * rewrite family (pair/single/tight), dropped by maintainer ruling (D-011):
- * dash usage is voice data, not deterministic substitution.
+ * self-test verifies every rule against its cases. The built-in patterns and
+ * their order are stable, except the em-dash rewrite family (pair/single/tight),
+ * dropped by maintainer ruling (D-011): dash usage is voice data, not
+ * deterministic substitution.
  *
  * Regex semantics match Python's `re`:
  *  - `remove`/`replace` rules run case-sensitively (Python uses `re.subn` with no
@@ -45,7 +44,7 @@ export interface EnforceReport {
   typos_injected?: number;
 }
 
-// The built-in rules, in application order. Preserved verbatim from the reference.
+// The built-in rules, in application order.
 export const RULES: Rule[] = [
   {
     id: "opener-worth-noting",
@@ -128,9 +127,9 @@ export const PIPELINE_FIXTURES: { in: string; out: string }[] = [
  * place — same position, its own replacement and tests — because an appended
  * entry runs after the built-ins and so can never fire on a pattern one of
  * them has already rewritten. Entries with new ids append after the built-ins.
- * A malformed or unreadable overlay is ignored, matching the reference's
- * silent fallback. Override-by-id extends the reference's append-only merge;
- * without an overlay the loaded list is identical to it.
+ * A malformed or unreadable overlay is ignored (silent fallback to the
+ * built-ins). Override-by-id extends the plain append-only merge;
+ * without an overlay the loaded list is the built-ins.
  */
 export function loadRules(): Rule[] {
   const rules = [...RULES];
@@ -258,8 +257,7 @@ function pyRepr(s: string): string {
 
 /**
  * Verify every rule against its own tests and the whole-pipeline fixtures.
- * Returns the number of failures (0 = all pass). Mirrors the reference output
- * so `hyphos rules --test` reads identically.
+ * Returns the number of failures (0 = all pass).
  */
 export function rulesSelftest(verbose = true): number {
   let failures = 0;
@@ -316,7 +314,7 @@ export function runRules(opts: { test?: boolean } = {}): number {
 
 /**
  * `enforce` subcommand: run the deterministic pass on a file, write the result
- * to stdout (no trailing newline, as the reference does) and the report to
+ * to stdout (no trailing newline) and the report to
  * stderr. The `--register` flag is accepted for symmetry but unused (enforcement
  * is register-independent). Returns an exit code.
  */

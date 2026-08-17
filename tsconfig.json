@@ -14,5 +14,5 @@
     "outDir": "dist",
     "rootDir": "."
   },
-  "include": ["src", "parity", "test"]
+  "include": ["src", "test"]
 }

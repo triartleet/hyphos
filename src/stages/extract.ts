@@ -15,9 +15,9 @@
  * be gitignored, local-only). Stdout prints AGGREGATES ONLY — counts and a date
  * range, never project names or message text — so it is safe to quote anywhere.
  *
- * Faithful port of the reference `extract_corpus.py`. The transcript JSONL is a
- * scraped, undocumented format produced by another tool; the field access below
- * mirrors the reference exactly rather than trying to normalize or "improve" it.
+ * The transcript JSONL is a scraped, undocumented format produced by another
+ * tool; the field access below deliberately mirrors that format as-is rather
+ * than trying to normalize or "improve" it.
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -46,12 +46,12 @@ function expanduser(p: string): string {
 }
 
 /**
- * Resolve the transcript root, mirroring the reference `transcript_root(argv)`:
+ * Resolve the transcript root:
  *   - a positional argument, if present, wins (with "~" expansion);
  *   - else the base is CLAUDE_CONFIG_DIR (when set) or `<home>/.claude`, and the
  *     root is `<base>/projects`.
  *
- * `argv` mirrors the reference's `sys.argv`: element 0 is the program/command
+ * `argv` follows the `sys.argv` convention: element 0 is the program/command
  * name and element 1 is the optional transcript directory, so `argv.length > 1`
  * selects it. An empty CLAUDE_CONFIG_DIR is treated as unset (matching a falsy
  * environment lookup).
@@ -88,7 +88,7 @@ function isDir(p: string): boolean {
   }
 }
 
-/** Code-unit string comparison, matching the reference `sorted()` over ASCII names. */
+/** Code-unit string comparison (Python `sorted()` semantics) over ASCII names. */
 function byName(a: string, b: string): number {
   return a < b ? -1 : a > b ? 1 : 0;
 }
@@ -96,8 +96,8 @@ function byName(a: string, b: string): number {
 /**
  * Equivalent of `Path.glob("*.jsonl")`: every entry whose name ends in ".jsonl"
  * — files, directories, and dotfiles alike — sorted by name. A directory that
- * matches is returned too; it later fails to open and is skipped, exactly as in
- * the reference (which relied on the same open-and-skip behavior).
+ * matches is returned too; it later fails to open and is skipped
+ * (open-and-skip behavior).
  */
 function globJsonl(dir: string): string[] {
   let names: string[];
@@ -150,10 +150,9 @@ function* iterSessionFiles(root: string): Generator<[string, string]> {
 /**
  * Yield the text of each usable content block. `content` is either a bare string
  * (yielded as-is) or a list of blocks, of which only `{ "type": "text" }` blocks
- * contribute their `text`. A missing `text` field yields "" (matching the
- * reference's `block.get("text", "")` default). A present-but-non-string `text`
- * would make the reference raise later; here it is treated as empty — this does
- * not occur in real transcripts.
+ * contribute their `text`. A missing `text` field yields "" (the
+ * `block.get("text", "")` default). A present-but-non-string `text` is
+ * treated as empty — this does not occur in real transcripts.
  */
 function* textBlocks(content: unknown): Generator<string> {
   if (typeof content === "string") {
@@ -209,7 +208,7 @@ function stem(file: string): string {
  * its default separators — ", " between items and ": " between key and value
  * (the default when no indent is given). JSON.stringify handles value escaping
  * (control characters, quotes) and leaves non-ASCII literal, matching
- * ensure_ascii=False; the manual separators reproduce the reference's spacing so
+ * ensure_ascii=False; the manual separators reproduce that spacing so
  * the JSONL is byte-for-byte identical. Values must be JSON scalars, which every
  * record field is.
  */
@@ -247,9 +246,9 @@ export function runExtract(argv: string[]): number {
     let content: string;
     try {
       // Node's utf8 decoder replaces malformed byte sequences with U+FFFD and
-      // never throws, matching the reference's errors="replace". Reading a
+      // never throws (the errors="replace" behavior). Reading a
       // directory (a matched *.jsonl dir) throws EISDIR here and is skipped,
-      // matching the reference's open-raises-OSError path.
+      // matching the open-raises-OSError path.
       content = fs.readFileSync(f, "utf8");
     } catch {
       continue;

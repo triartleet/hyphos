@@ -12,9 +12,9 @@ import {
 } from "../src/commands/rules.js";
 
 /**
- * Mirror of the Python `hyphos rules --test`: every rule is checked against its
- * own declared cases and the whole-pipeline fixtures. This must report zero
- * failures identically to the reference (D-003: deterministic enforcement parity).
+ * `hyphos rules --test` mirror: every rule is checked against its own declared
+ * cases and the whole-pipeline fixtures. This must report zero failures
+ * (D-003: deterministic enforcement).
  */
 describe("rules self-test (D-003 deterministic enforcement)", () => {
   it("passes every rule case and pipeline fixture with 0 failures", () => {

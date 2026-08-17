@@ -1,6 +1,6 @@
 /**
- * Stage 0 (email) — ingest sent e-mail as corpus material. Faithful port of the
- * reference `ingest_email.py` (which uses Python's `mailbox` + `email.policy`).
+ * Stage 0 (email) — ingest sent e-mail as corpus material (mbox parsing that
+ * mirrors Python's `mailbox` + `email.policy` semantics).
  *
  * Reads Google Takeout archives (corpus/inbox/*.zip containing a Sent .mbox) or
  * bare .mbox files dropped in corpus/inbox/, plus Outlook-for-Mac .olm archives.
@@ -17,8 +17,8 @@
  *
  * ── Why not mailparser ────────────────────────────────────────────────────────
  * `mailparser` was evaluated first (it is the obvious MIME library), but its
- * high-level `simpleParser` cannot reproduce Python's `email` behaviour that this
- * port must match bit-for-bit, as verified against the reference corpus:
+ * high-level `simpleParser` cannot reproduce the Python `email` behaviour the
+ * stage depends on bit-for-bit, as verified against real archives:
  *   1. It AGGREGATES every text/plain (or every text/html) part into one string,
  *      whereas Python's `get_body(preferencelist=("plain","html"))` selects a
  *      SINGLE part. Messages with two html branches (e.g. an empty body next to a
@@ -28,9 +28,9 @@
  *      and therefore the `"\n-- \n"` signature split and per-paragraph language
  *      split — diverges (≈16% of this corpus is flowed).
  *   3. It normalizes CRLF→LF; Python preserves the original line endings, which
- *      the reference's signature-delimiter split is sensitive to.
- * So MIME structure, part selection and transfer decoding are ported directly
- * from Python here (get_body + get_content), and charset decoding uses `iconv-lite`
+ *      the signature-delimiter split is sensitive to.
+ * So MIME structure, part selection and transfer decoding implement
+ * get_body + get_content directly, and charset decoding uses `iconv-lite`
  * — mailparser's own charset engine, which matches Python's codecs byte-for-byte
  * on this corpus (utf-8, us-ascii, iso-8859-1/7/15, windows-1251/1252/1253). No
  * async remains, so this entry point runs and returns synchronously.
@@ -56,7 +56,7 @@ const iconv = createRequire(import.meta.url)("iconv-lite") as {
   encodingExists(encoding: string): boolean;
 };
 
-// ── Regexes (ported from the reference; flags chosen to match Python `re`) ──────
+// ── Regexes (flags chosen to match Python `re`) ────────────────────────────────
 
 // Quoted reply / forwarded-message intros. Python compiled with (?im); applied
 // per line via `.match(line)` (anchored at start). The `m` flag is inert on a
@@ -288,7 +288,7 @@ function htmlToText(markup: string): string {
 // True): differs from JS `\s`/`trim()` in two ways that both bite here — Python
 // strips the C1/ASCII separators \x1c–\x1f and NEL \x85 (JS does not), and Python
 // does NOT strip U+FEFF (the BOM), which JS `trim()` removes. A leading BOM must
-// survive into the record text to match the reference.
+// survive into the record text.
 const PY_WS =
   "\\t\\n\\v\\f\\r\\x1c\\x1d\\x1e\\x1f \\x85\\xa0\\u1680\\u2000-\\u200a\\u2028\\u2029\\u202f\\u205f\\u3000";
 const PY_LSTRIP_RE = new RegExp(`^[${PY_WS}]+`);
@@ -319,7 +319,7 @@ function clean(textIn: string): string {
 // conversion), named/obsolete zones mapped to a numeric offset, trailing comments
 // dropped, and — when the value cannot be parsed — the raw string returned as-is.
 // This mirrors `email.utils.format_datetime(email.utils.parsedate_to_datetime(v))`
-// with its raise→raw fallback, verified against the reference corpus (e.g. a raw
+// with its raise→raw fallback, verified against real archives (e.g. a raw
 // "Thu, 4 Jun 2026 …" is emitted as "Thu, 04 Jun 2026 …").
 const DATE_MONTHS: Record<string, number> = {
   jan: 0,
@@ -743,11 +743,11 @@ function splitMbox(buf: Buffer): [number, number][] {
 // reference performs: pre-order search for the first element whose tag NAME
 // contains a needle, returning that element's text (else its first non-empty
 // attribute value). It resolves the five predefined XML entities and numeric refs,
-// and reads CDATA literally. DIVERGENCE from ElementTree, flagged for the harness:
-// ElementTree would RAISE on malformed XML (and the reference then skips that
+// and reads CDATA literally. DIVERGENCE from ElementTree:
+// ElementTree would RAISE on malformed XML (and a strict reader then skips that
 // message) whereas this scanner is lenient; and mixed-content nuances (comments
 // splitting text into .text/.tail, namespaces, DTD entities) are not modelled.
-// This path only runs when *.olm files are present (none in the reference corpus).
+// This path only runs when *.olm files are present.
 
 function xmlUnescape(s: string): string {
   return s.replace(
@@ -1026,8 +1026,8 @@ interface MboxMessage {
  * message through `email.message_from_binary_file`, which wraps the bytes in a
  * `TextIOWrapper` in universal-newlines mode, so the ENTIRE message (headers,
  * boundaries and bodies) is LF-normalized before parsing. Matching this is what
- * makes the `"\n-- \n"` signature split and per-line quote stripping line up with
- * the reference. (Encoded newlines like a quoted-printable "=0D=0A" are ordinary
+ * makes the `"\n-- \n"` signature split and per-line quote stripping line up.
+ * (Encoded newlines like a quoted-printable "=0D=0A" are ordinary
  * characters here and survive to decode as CRLF, exactly as in Python.)
  */
 function normalizeNewlines(buf: Buffer): Buffer {
@@ -1072,7 +1072,7 @@ export function runIngestEmail(_argv: string[]): number {
   let kept = 0;
   let skipped = 0;
   let notOwner = 0;
-  // Seed the language totals in the reference's insertion order; "gr-latn" is
+  // Seed the language totals in insertion order; "gr-latn" is
   // appended on first sight. Order decides the stdout summary order below.
   const wordsByLang = new Map<string, number>([
     ["en", 0],

@@ -1,10 +1,8 @@
 /**
- * A counting map matching the parts of Python's `collections.Counter` the
- * pipeline relies on. Insertion order is preserved (JS `Map` semantics), and
- * `mostCommon` breaks count ties by first-seen order — the same result Python's
- * `Counter.most_common` gives via a stable sort over an insertion-ordered dict.
- * Getting the tie order right keeps `top_sentence_openers` and connector rankings
- * identical to the reference.
+ * A counting map with the semantics the pipeline relies on: insertion order is
+ * preserved (JS `Map`), and `mostCommon` breaks count ties by first-seen order
+ * (a stable sort over insertion order). The tie order keeps
+ * `top_sentence_openers` and connector rankings stable.
  */
 export class Counter<K = string> {
   private readonly m = new Map<K, number>();
@@ -28,7 +26,7 @@ export class Counter<K = string> {
   /** Top `n` by count, ties broken by insertion order (n omitted → all). */
   mostCommon(n?: number): [K, number][] {
     // Array.prototype.sort is stable, and entries() is in insertion order, so
-    // equal counts keep first-seen order — matching Python.
+    // equal counts keep first-seen order (stable tie-break).
     const sorted = this.entries().sort((a, b) => b[1] - a[1]);
     return n === undefined ? sorted : sorted.slice(0, n);
   }

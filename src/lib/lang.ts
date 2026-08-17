@@ -1,6 +1,6 @@
 /**
  * Language tagging for corpus ingest — including greeklish (Greek written in
- * Latin characters). Faithful port of the reference `textlang.py`.
+ * Latin characters).
  *
  * Greeklish defeats script-based detection (all-Latin) and would poison English
  * vocabulary profiles if let through, so it gets its own tag via a function-word
@@ -14,8 +14,7 @@ import { whitespaceSplit } from "./text.js";
 
 export type Lang = "en" | "el" | "gr-latn" | "other";
 
-// Greek and Coptic (U+0370–U+03FF) plus Greek Extended (U+1F00–U+1FFF), matching
-// the reference character class exactly.
+// Greek and Coptic (U+0370–U+03FF) plus Greek Extended (U+1F00–U+1FFF).
 const GREEK_SCRIPT_RE = /[Ͱ-Ͽἀ-῿]/g;
 const LATIN_RE = /[a-zA-Z]/g;
 const LATIN_LOWER_WORD_RE = /[a-z]+/g;
@@ -109,8 +108,8 @@ export function splitByLang(text: string): [Lang, string][] {
 
   const tagged: [Lang, string][] = paras.map((p) => [detectLang(p), p]);
 
-  // Insertion-ordered word totals per language (Map matches Python dict order,
-  // which decides the max-key tie-break below).
+  // Insertion-ordered word totals per language (insertion order decides
+  // the max-key tie-break below).
   const wordsByLang = new Map<Lang, number>();
   for (const [lang, p] of tagged) {
     wordsByLang.set(

@@ -14,17 +14,17 @@ A local-first personal-voice engine: it extracts a user's own writing from their
 chat transcripts and exports, builds register-aware voice profiles (stylometric
 fingerprint + distilled style guide), rewrites AI-generated drafts in the user's
 voice with a deterministic quirk-enforcement pass, and scores outputs for
-fidelity. Published publicly (MIT). This implementation is a parity port of the
-original Python tool.
+fidelity. Published publicly (MIT). It began life as a Python pipeline, ported
+to TypeScript with stage-by-stage output verification at cutover; the porting
+harness was removed once the port was proven (D-013).
 
 ## Working rules
 
 - **Reuse-first, minimal diffs.** Check existing code before adding helpers;
   never touch files outside the task's scope.
-- **Parity with the reference is load-bearing.** Behavior must match the reference
-  implementation stage by stage (`npm run parity`). Numeric behavior goes through
-  `src/lib/num.ts` (`pyRound` = round-half-to-even; `mean`/`median` match the
-  reference), tokenization through `src/lib/text.ts`, language tagging through
+- **Shared primitives are load-bearing.** Numeric behavior goes through
+  `src/lib/num.ts` (`pyRound` = round-half-to-even; `mean`/`median` are exact),
+  tokenization through `src/lib/text.ts`, language tagging through
   `src/lib/lang.ts`. Do not reimplement these per-stage.
 - **Core invariants:** voice data is local-only; quirk enforcement is
   deterministic and post-model; non-English sources contribute rhythm/register
@@ -47,14 +47,13 @@ original Python tool.
 
 ## Layout
 
-- `src/lib/` — shared, parity-matched primitives (num, text, lang, counter, paths).
+- `src/lib/` — shared primitives (num, text, lang, counter, paths).
 - `src/stages/` — pipeline stages (extract, curate, tag, salvage, ingest, fingerprint).
 - `src/commands/` — CLI-native commands (rules/enforce, rewrite, score, serve).
 - `src/cli.ts` — the `hyphos` command entry; `src/index.ts` — the public API.
-- `test/` — unit + parity-anchor tests. `parity/` — the cutover gate vs the reference.
+- `test/` — unit tests.
 
 ## Done =
 
 - `npm test` passes; `npm run typecheck` clean.
-- `npm run parity` matches the reference for every ported stage.
 - No corpus/profile bytes in tracked files or stdout.

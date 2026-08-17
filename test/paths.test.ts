@@ -35,7 +35,7 @@ describe("data root resolution", () => {
     );
   });
 
-  it("per-dir overrides win over HYPHOS_HOME (parity harness contract)", () => {
+  it("per-dir overrides win over HYPHOS_HOME", () => {
     process.env.HYPHOS_HOME = path.join(os.tmpdir(), "hyphos-home");
     process.env.HYPHOS_CORPUS = path.join(os.tmpdir(), "corpus-override");
     expect(corpusDir()).toBe(process.env.HYPHOS_CORPUS);

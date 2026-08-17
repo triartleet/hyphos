@@ -4,9 +4,8 @@
  * rate. 50% means the rewrite is indistinguishable from the user; 100% means it
  * never fools them.
  *
- * This is interactive (reads stdin) and uses random sampling, so it is not
- * covered by the parity harness. The sampling/shuffle use JavaScript's PRNG,
- * matching the reference's non-determinism (Python seeds `random` from the OS).
+ * This is interactive (reads stdin) and uses random sampling (JavaScript's
+ * PRNG, seeded from the OS), so runs are non-deterministic.
  */
 import fs from "node:fs";
 import path from "node:path";

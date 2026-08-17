@@ -1,6 +1,5 @@
 /**
- * Stage 0b — curate the raw corpus down to genuinely typed text. Faithful port
- * of the reference `curate_corpus.py`.
+ * Stage 0b — curate the raw corpus down to genuinely typed text.
  *
  * The rules are evidence-based (measured on a real corpus): messages that stay
  * long after machine text is stripped are almost always pasted, not typed, so
@@ -46,12 +45,12 @@ const PY_WS =
   "\\t\\n\\v\\f\\r\\x1c\\x1d\\x1e\\x1f \\x85\\xa0\\u1680\\u2000-\\u200a\\u2028\\u2029\\u202f\\u205f\\u3000";
 const PY_STRIP_RE = new RegExp(`^[${PY_WS}]+|[${PY_WS}]+$`, "gu");
 
-/** Faithful port of Python `str.strip()` with no argument. */
+/** Python `str.strip()` semantics, no argument. */
 function pyStrip(s: string): string {
   return s.replace(PY_STRIP_RE, "");
 }
 
-/** Faithful port of Python `str.splitlines()` (no keepends). */
+/** Python `str.splitlines()` semantics (no keepends). */
 function pySplitlines(s: string): string[] {
   if (s.length === 0) return [];
   const parts: string[] = [];
@@ -79,7 +78,7 @@ function countOccurrences(haystack: string, needle: string): number {
   return n;
 }
 
-/** Strip machine-emitted text, matching the reference line-by-line filtering. */
+/** Strip machine-emitted text, line by line. */
 function stripMachineText(text: string): string {
   let t = text.replace(FENCE_RE, " ");
   t = t.replace(IMAGE_RE, " ");
@@ -145,7 +144,7 @@ export function runCurate(argv: string[]): number {
     // Reassigning `text`/`words` keeps their original position (both Python dict
     // and JS object semantics); `raw_words` is appended last.
     const rec = { ...o, text: stripped, words: wordCount, raw_words: o.words };
-    // Deliberate divergence from the reference script: a message carrying an
+    // Deliberate: a message carrying an
     // em-dash is excluded from the voice corpus entirely. The owner's typed
     // baseline measures ~0 of them per 1k words (see profiles/model-isms.md),
     // so a message that contains one is pasted or AI-influenced text riding in
@@ -173,8 +172,8 @@ export function runCurate(argv: string[]): number {
     }
   }
 
-  // All output files are (re)created even when empty, matching the reference's
-  // `open("w")` truncation.
+  // All output files are (re)created even when empty (`open("w")` truncation
+  // semantics).
   fs.writeFileSync(curatedPath, curatedLines.join(""));
   fs.writeFileSync(quarantinePath, quarantineLines.join(""));
   fs.writeFileSync(aiMarkedPath, aiMarkedLines.join(""));

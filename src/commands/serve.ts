@@ -2,18 +2,17 @@
  * The local web app and the feedback log.
  *
  * `serve` runs the Translate-style UI on localhost only (D-001: the data plane
- * never leaves the machine; the server binds 127.0.0.1). It exposes the same
- * JSON endpoints as the reference — registers, infer, feedback, rewrite,
- * enforce, score — with the same routing, error mapping (a `SysExit` becomes an
- * HTTP 502), and compact `ensure_ascii=False` JSON responses.
+ * never leaves the machine; the server binds 127.0.0.1). It exposes JSON
+ * endpoints — registers, infer, feedback, rewrite, enforce, score — with fixed
+ * routing, error mapping (a `SysExit` becomes an HTTP 502), and compact
+ * `ensure_ascii=False` JSON responses.
  *
  * `record_feedback` appends a verdict to `corpus/feedback.jsonl` and returns
  * aggregate counts plus a suggestion once enough negative evidence accumulates.
  *
- * Divergence note: the reference serves static files from the repository root's
- * `web/` directory (relative to the script). This port serves from
- * `$HYPHOS_WEB` or `./web` under the current working directory (unlike
- * corpus/profiles, which resolve from the package root via ../lib/paths).
+ * Static files are served from `$HYPHOS_WEB` or `./web` under the current
+ * working directory (unlike corpus/profiles, which resolve from the package
+ * root via ../lib/paths).
  */
 import http from "node:http";
 import fs from "node:fs";

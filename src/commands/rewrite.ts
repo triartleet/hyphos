@@ -9,9 +9,9 @@
  * prefers claude and falls back to the API.
  *
  * These paths depend on an external model, so their text output is inherently
- * non-deterministic and not covered by the parity harness — but the prompt
- * construction, backend order, fallback logic, and enforcement wiring are ported
- * faithfully. See the notes on `injectTypos` (seeded RNG) below.
+ * non-deterministic — but the prompt construction, backend order, fallback
+ * logic, and enforcement wiring are deterministic. See the notes on
+ * `injectTypos` (seeded RNG) below.
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -49,12 +49,12 @@ export function buildPrompt(register: string, draft: string): string {
   return parts.join("\n");
 }
 
-/** Drive the local `claude` CLI as a subprocess (synchronous, like the reference). */
+/** Drive the local `claude` CLI as a subprocess (synchronous). */
 export function callClaudeCli(prompt: string): string {
   const r = spawnSync("claude", ["-p", prompt], {
     encoding: "utf8",
     timeout: 600000,
-    // Model output can be large; the reference has no size limit, so lift Node's
+    // Model output can be large; there is no size limit, so lift Node's
     // default 1 MB cap to avoid truncating the response.
     maxBuffer: 64 * 1024 * 1024,
   });
@@ -160,10 +160,8 @@ function strHash(s: string): number {
 }
 
 // Small deterministic PRNG (mulberry32) so typo injection is reproducible per
-// input in this port. NOTE: this cannot match the reference, which seeds Python's
-// Mersenne Twister with `hash(text)` — and Python's str hashing is randomised per
-// process. Which words receive a typo therefore differs from the reference; the
-// count `k` and the candidate set are computed identically.
+// input. The count `k` and the candidate set are computed deterministically;
+// which words receive a typo is seeded by the input's hash.
 function mulberry32(seed: number): () => number {
   let a = seed >>> 0;
   return () => {
@@ -187,7 +185,7 @@ function shuffleInPlace<T>(arr: T[], rng: () => number): void {
  * Re-introduce the author's real typos at the measured per-register rate. The
  * catalog and rate come from the profile; `k` (how many to inject) is
  * `round(rate * words / 1000)`. The selection order uses a seeded shuffle (see
- * the note above — it diverges from the reference by design).
+ * the note above).
  */
 export function injectTypos(text: string, register: string): [string, number] {
   const tj = path.join(profilesDir(), register, "typos.json");
@@ -221,7 +219,7 @@ export function injectTypos(text: string, register: string): [string, number] {
   }
   shuffleInPlace(positions, mulberry32(strHash(text)));
 
-  // Mirror the reference's in-place mutation exactly: each edit uses its original
+  // In-place mutation: each edit uses its original
   // captured offset applied to the progressively-mutated string.
   let out = text;
   let injected = 0;
@@ -236,7 +234,7 @@ export function injectTypos(text: string, register: string): [string, number] {
 /**
  * Rewrite a draft via the model then the deterministic pass. Tries backends in
  * order and returns [finalText, report, backendUsed]. Throws {@link SysExit} if
- * no backend succeeds (the reference calls `sys.exit`).
+ * no backend succeeds (a `SysExit` is raised).
  */
 export async function rewrite(
   register: string,
