@@ -204,3 +204,23 @@ fidelity pass. A deterministic substitution was solving the wrong case — it
 reshaped drafts toward a join style the voice itself barely uses. Supersedes
 the same-day semicolon retune of these rules; D-010's overlay retuning
 stands for other rules.
+
+### D-012 — Two unfixed advisory chains accepted until upstream ships
+
+**Scope:** repo · **Decided:** 2026-08-17
+
+The mailparser → html-to-text → deepmerge-ts chain (3 highs, stack-exhaustion
+class, GHSA-ggr8-5vv4-36mx) and tsup's nested esbuild 0.27.x (low,
+GHSA-g7r4-m6w7-qqqr) are accepted as-is: no fixed version exists upstream —
+html-to-text's latest still declares the vulnerable deepmerge-ts range, and
+tsup's latest pins esbuild ^0.27.0, which caret-on-0.x cannot lift to 0.28.
+Exposure is bounded: the merge flaw is reachable only through HTML in the
+ingested email exports (crash-class, not code execution), and the esbuild
+flaw covers a dev-server-on-Windows path tsup never runs.
+
+**Why:** the zero-audit alternatives — pinning mailparser seven patches below
+latest, or forcing deepmerge-ts ^8 or esbuild 0.28 in against declared
+ranges — each move risk onto the parity-governed ingest path or desynchronize
+the lockfile, to dodge crash-class flaws with near-zero reach. Both clear as
+plain in-range updates the moment upstream ships; until then `npm audit`
+reads 4 findings (1 low, 3 high) by design, not by oversight.
