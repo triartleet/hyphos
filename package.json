@@ -1,7 +1,7 @@
 {
   "name": "hyphos",
   "version": "0.1.0",
-  "description": "Rewrite any AI draft so it reads as written by you \u2014 register-aware voice profiles built from your own writing, with deterministic quirk enforcement and a fidelity score.",
+  "description": "Rewrite any AI draft so it reads as written by you — register-aware voice profiles built from your own writing, with deterministic quirk enforcement and a fidelity score.",
   "type": "module",
   "bin": {
     "hyphos": "./dist/cli.js"

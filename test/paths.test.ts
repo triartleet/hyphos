@@ -27,20 +27,14 @@ describe("data root resolution", () => {
 
   it("HYPHOS_HOME overrides the data root", () => {
     process.env.HYPHOS_HOME = path.join(os.tmpdir(), "hyphos-home");
-    expect(corpusDir()).toBe(
-      path.join(process.env.HYPHOS_HOME, "corpus"),
-    );
-    expect(profilesDir()).toBe(
-      path.join(process.env.HYPHOS_HOME, "profiles"),
-    );
+    expect(corpusDir()).toBe(path.join(process.env.HYPHOS_HOME, "corpus"));
+    expect(profilesDir()).toBe(path.join(process.env.HYPHOS_HOME, "profiles"));
   });
 
   it("per-dir overrides win over HYPHOS_HOME", () => {
     process.env.HYPHOS_HOME = path.join(os.tmpdir(), "hyphos-home");
     process.env.HYPHOS_CORPUS = path.join(os.tmpdir(), "corpus-override");
     expect(corpusDir()).toBe(process.env.HYPHOS_CORPUS);
-    expect(profilesDir()).toBe(
-      path.join(process.env.HYPHOS_HOME, "profiles"),
-    );
+    expect(profilesDir()).toBe(path.join(process.env.HYPHOS_HOME, "profiles"));
   });
 });

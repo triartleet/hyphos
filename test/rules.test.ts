@@ -77,7 +77,10 @@ describe("personal rules overlay (loadRules)", () => {
         pattern: "It(?:'|’)s worth noting that\\s+",
         replacement: "Recall that ",
         tests: [
-          { in: "It's worth noting that X works.", out: "Recall that X works." },
+          {
+            in: "It's worth noting that X works.",
+            out: "Recall that X works.",
+          },
         ],
       },
     ]);
