@@ -6,7 +6,9 @@
  * rules in listed order (deterministic), reports per-rule counts, and the
  * self-test verifies every rule against its cases. This is a faithful port of
  * the reference `RULES`/`load_rules`/`enforce`/`rules_selftest` — the patterns,
- * their order, and their tests are preserved exactly.
+ * their order, and their tests are preserved exactly, except the em-dash
+ * rewrite family (pair/single/tight), dropped by maintainer ruling (D-011):
+ * dash usage is voice data, not deterministic substitution.
  *
  * Regex semantics match Python's `re`:
  *  - `remove`/`replace` rules run case-sensitively (Python uses `re.subn` with no
@@ -78,33 +80,6 @@ export const RULES: Rule[] = [
     ],
   },
   {
-    id: "emdash-pair",
-    kind: "replace",
-    pattern: "\\s+—\\s+([^—\\n]{1,60})\\s+—\\s+",
-    replacement: " (\\1) ",
-    tests: [{ in: "a — the fix — b", out: "a (the fix) b" }],
-  },
-  {
-    id: "emdash-single",
-    kind: "replace",
-    pattern: "\\s+—\\s+",
-    replacement: ", ",
-    tests: [{ in: "clear — mostly", out: "clear, mostly" }],
-  },
-  {
-    id: "emdash-tight",
-    kind: "replace",
-    // letters only: \w includes digits, and the first self-test run caught
-    // this rule mangling year ranges ("1990—1995") exactly as its own
-    // docstring promised it wouldn't
-    pattern: "(?<=[a-zA-Z])—(?=[a-zA-Z])",
-    replacement: ", ",
-    tests: [
-      { in: "yes—no", out: "yes, no" },
-      { in: "1990—1995", out: "1990—1995" },
-    ],
-  },
-  {
     id: "contrast-flip",
     kind: "flag",
     pattern:
@@ -139,14 +114,23 @@ export const RULES: Rule[] = [
 ];
 
 // Whole-pipeline fixtures: exercise `enforce` end to end, not one rule.
+// The em-dash family is deliberately absent (dropped 2026-08-17, D-011): dash
+// usage follows the voice profile's data — the maintainer's baseline is ~0
+// per 1k words and the fidelity score already measures `emdash_per_1k` — so
+// the fixture pins that dashes pass through the deterministic pass untouched.
 export const PIPELINE_FIXTURES: { in: string; out: string }[] = [
-  { in: "Importantly, this — mostly — works.", out: "this (mostly) works." },
+  { in: "Importantly, this — mostly — works.", out: "this — mostly — works." },
 ];
 
 /**
  * Built-in rules plus any personal overlay in `profiles/rules.json` (same
- * schema, merged after the built-ins). A malformed or unreadable overlay is
- * ignored, matching the reference's silent fallback.
+ * schema). An overlay entry whose id matches a built-in retunes that rule in
+ * place — same position, its own replacement and tests — because an appended
+ * entry runs after the built-ins and so can never fire on a pattern one of
+ * them has already rewritten. Entries with new ids append after the built-ins.
+ * A malformed or unreadable overlay is ignored, matching the reference's
+ * silent fallback. Override-by-id extends the reference's append-only merge;
+ * without an overlay the loaded list is identical to it.
  */
 export function loadRules(): Rule[] {
   const rules = [...RULES];
@@ -154,7 +138,11 @@ export function loadRules(): Rule[] {
   try {
     if (fs.statSync(overlay).isFile()) {
       const extra = JSON.parse(fs.readFileSync(overlay, "utf8")) as Rule[];
-      rules.push(...extra);
+      for (const rule of extra) {
+        const i = rules.findIndex((r) => r.id === rule.id);
+        if (i === -1) rules.push(rule);
+        else rules[i] = rule;
+      }
     }
   } catch {
     // missing or invalid overlay — keep the built-ins only

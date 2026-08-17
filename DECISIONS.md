@@ -158,3 +158,49 @@ words, and a tie-break ordering difference in the connector ranking.
 for any stage change (`npm run parity` stays green); new numeric or tokenization
 behavior goes through `src/lib`, never re-implemented per stage; the previous
 implementation remains in git history for auditing the port.
+
+### D-009 — Take the two semver-major dependency bumps (vitest 4, adm-zip 0.6)
+
+**Scope:** repo · **Decided:** 2026-08-17
+
+vitest moves 2.1.8 → 4.1.10 and adm-zip 0.5.16 → 0.6.0. vitest first
+(dev-only; the suite runs unchanged under 4), adm-zip behind an entry-order
+gate: zip entries must keep arriving in stored central-directory order
+(`noSort`), the ordering ingest matches against the reference implementation;
+that ordering was verified identical across the bump, so only the full parity
+run against the reference remains owed. adm-zip 0.6.0 bundles its own types,
+which drops @types/adm-zip. The semver-range advisory bumps (mailparser, tsup,
+tsx) travel with the pending advisory-sweep branch.
+
+**Why:** the advisories needing major versions are exactly the two left after
+the within-semver sweep; vitest 4 clears the critical/high set in one jump on
+a small suite, and adm-zip's fix lands with its one parity-relevant property
+pinned before merge.
+
+### D-010 — Overlay rules retune built-ins in place; em-dash joins resolve to semicolons
+
+**Scope:** repo · **Decided:** 2026-08-17
+
+An overlay entry in `profiles/rules.json` whose id matches a built-in rule
+replaces it in place — same position, its own replacement and tests — while
+entries with new ids keep appending after the built-ins. Appending alone made
+per-voice tuning unreachable for any pattern a built-in consumed first: an
+appended em-dash rule never saw an em-dash, because the built-ins had already
+rewritten them all to commas. The motivating retune is live in the
+maintainer's own overlay (untracked, per-install config): single and tight
+em-dash joins become `;`, while paired asides keep the built-in parentheses
+rewrite, since a semicolon does not fit a parenthetical.
+
+### D-011 — Em-dash rewrites dropped from the registry; dash usage is voice data
+
+**Scope:** repo · **Decided:** 2026-08-17
+
+The em-dash rewrite family (pair → parentheses, single/tight → comma) is
+removed from the rules registry entirely, and nothing substitutes it. Dash
+usage follows the voice profile's own patterns: the maintainer's typed
+baseline is ~0 per 1k words, already encoded in the corpus curation (em-dash
+carriers are excluded as AI markers) and scored by `emdash_per_1k` in the
+fidelity pass. A deterministic substitution was solving the wrong case — it
+reshaped drafts toward a join style the voice itself barely uses. Supersedes
+the same-day semicolon retune of these rules; D-010's overlay retuning
+stands for other rules.
