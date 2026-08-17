@@ -1,18 +1,18 @@
 {
   "packVersion": "7",
   "etymdVersion": "0.10.0",
-  "approvedAt": "2026-08-17T17:18:30.810Z",
+  "approvedAt": "2026-08-17T17:33:10.028Z",
   "profile": "solo",
   "facts": {
     "etymdVersion": "0.10.0",
     "packVersion": "7",
-    "generatedAt": "2026-08-17T17:18:30.808Z",
+    "generatedAt": "2026-08-17T17:33:10.027Z",
     "root": ".",
     "name": "hyphos",
     "git": {
       "isRepo": true,
       "branch": "main",
-      "head": "21f1b97",
+      "head": "8b2a2a4",
       "hooksPath": ".githooks",
       "husky": false,
       "recentAuthors": 1
@@ -203,12 +203,12 @@
       "scripts": 4
     },
     "freshness": {
-      "repoLastCommit": "2026-08-17T19:01:51+02:00",
+      "repoLastCommit": "2026-08-17T19:25:23+02:00",
       "artifacts": [
         {
           "artifactId": "decisions",
           "path": "DECISIONS.md",
-          "lastCommit": "2026-08-17T18:38:10+02:00",
+          "lastCommit": "2026-08-17T19:18:53+02:00",
           "commitsSince": true
         }
       ],

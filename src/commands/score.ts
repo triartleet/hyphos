@@ -8,7 +8,7 @@
  * through `pyRound`, and numbers rendered as floats are wrapped in `PyFloat`
  * so the JSON output is stable byte-for-byte.
  *
- * `registers_info`/`infer_register` are ported here too since inference ranks
+ * Register inference lives here too, since it ranks
  * registers by their `score` fidelity.
  */
 import fs from "node:fs";

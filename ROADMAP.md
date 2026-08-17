@@ -29,23 +29,19 @@ Living list — items get done, dropped, or reordered.
 
 ## Shipped
 
-- 2026-08-13 — `bin/extract_corpus.py`: extract your own typed messages from
-  Claude Code transcripts, with aggregate-only stdout.
-- 2026-08-13 — `bin/curate_corpus.py`: evidence-derived typed-text curation
-  (fences, logs, image captions, JSON pastes stripped; oversized messages
-  quarantined).
-- 2026-08-13 — `bin/tag_registers.py`: rule-based register tagging, calibrated
-  to ignore the author's universal habits.
-- 2026-08-13 — `bin/ingest_email.py`: Takeout sent-mail ingest with enforced
-  owner authorship (From filter) and quote/signature stripping.
-- 2026-08-13 — `bin/profile_fingerprint.py`: per-register stylometric
-  fingerprints, including a pre-2023 purity split for email.
+- 2026-08-13 — initial Python pipeline: typed-message extraction from Claude
+  Code transcripts (aggregate-only stdout), evidence-derived typed-text
+  curation, register tagging calibrated to ignore the author's universal
+  habits, Takeout sent-mail ingest with enforced owner authorship and
+  quote/signature stripping, per-register stylometric fingerprints with a
+  pre-2023 purity split for email. Reimplemented in TypeScript 2026-08-15
+  with stage-by-stage verification (D-008).
 - 2026-08-14 — `judge`: model-judged fidelity (register match, quirk
   fidelity, ism freedom, overall + evidence), CLI `score --judge` and the
   web app's Judge pass — reported beside the stylometric half, never merged.
 - 2026-08-14 — `hyphos serve`: Translate-style local web app (PWA) —
   draft left, your voice right, register tabs, fidelity chip, tune drawer;
   binds 127.0.0.1 only.
-- 2026-08-14 — `bin/hyphos`: the CLI — `rewrite` (subscription-first backend,
+- 2026-08-14 — the `hyphos` CLI — `rewrite` (subscription-first backend,
   profile-guided prompt, deterministic enforcement pass), `enforce`, `score`
   (uncalibrated v1, confidence-aware), `blind` (self-test harness).

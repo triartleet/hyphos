@@ -102,7 +102,7 @@ function readLines(file: string): string[] {
 }
 
 export function runCurate(argv: string[]): number {
-  void argv; // curate_corpus.py takes no CLI arguments.
+  void argv; // the stage takes no CLI arguments.
   const corpus = corpusDir();
   const src = path.join(corpus, "raw-sessions.jsonl");
   if (!fs.existsSync(src) || !fs.statSync(src).isFile()) {
@@ -131,8 +131,8 @@ export function runCurate(argv: string[]): number {
       droppedEmpty++;
       continue;
     }
-    // `stripped` is already whitespace-stripped, so its first char equals the
-    // reference's `stripped.lstrip()[:1]`. Drop unfenced JSON/config pastes.
+    // `stripped` is already whitespace-stripped, so its first char is the
+    // `stripped.lstrip()[:1]` value. Drop unfenced JSON/config pastes.
     const first = stripped.slice(0, 1);
     if (
       (first === "{" || first === "[") &&

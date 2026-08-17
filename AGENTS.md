@@ -14,9 +14,7 @@ A local-first personal-voice engine: it extracts a user's own writing from their
 chat transcripts and exports, builds register-aware voice profiles (stylometric
 fingerprint + distilled style guide), rewrites AI-generated drafts in the user's
 voice with a deterministic quirk-enforcement pass, and scores outputs for
-fidelity. Published publicly (MIT). It began life as a Python pipeline, ported
-to TypeScript with stage-by-stage output verification at cutover; the porting
-harness was removed once the port was proven (D-013).
+fidelity. Published publicly (MIT).
 
 ## Working rules
 

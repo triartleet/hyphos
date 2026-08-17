@@ -30,7 +30,7 @@ export function latinLowerWords(s: string): string[] {
 }
 
 /**
- * `sentences_of`: newlines are layout, not punctuation. A blank line is a
+ * Sentence splitting: newlines are layout, not punctuation. A blank line is a
  * boundary; a single newline reads as a space. Split on `.!?` and the blank-line
  * marker, trimming and dropping empties.
  */

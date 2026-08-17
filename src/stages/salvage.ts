@@ -196,11 +196,9 @@ export function runSalvage(argv: string[]): number {
 
   fs.writeFileSync(outPath, lines.map((l) => l + "\n").join(""));
 
-  // Aggregate-only stdout. The reference hardcoded its quarantine count as a
-  // "268-message" literal; that was tolerable while quarantine was static, but
-  // the em-dash guard upstream now changes its size on every curate run, so
-  // the live count is printed instead (deliberate divergence, same change as
-  // the guard itself).
+  // Aggregate-only stdout: the quarantine count is printed live — the em-dash
+  // guard upstream changes its size on every curate run, so a hardcoded literal
+  // would drift (fixed together with the guard itself).
   process.stdout.write(
     `salvaged: ${kept} fragments, ${keptWords} words (from ${qCount}-message quarantine)\n`,
   );

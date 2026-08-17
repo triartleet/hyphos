@@ -6,7 +6,7 @@ Mechanism only. Decisions live in `DECISIONS.md`; usage in `README.md`.
 
 ```
 your transcripts / exports
-        │  extract (bin/extract_corpus.py)
+        │  extract (`hyphos extract`)
         ▼
 corpus/raw-sessions.jsonl        — your own typed messages, deduplicated
         │  tag registers

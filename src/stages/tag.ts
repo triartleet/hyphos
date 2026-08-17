@@ -231,7 +231,7 @@ function readLines(file: string): string[] {
 }
 
 export function runTag(argv: string[]): number {
-  void argv; // tag_registers.py takes no CLI arguments.
+  void argv; // the stage takes no CLI arguments.
   const corpus = corpusDir();
   const src = path.join(corpus, "curated.jsonl");
   if (!fs.existsSync(src) || !fs.statSync(src).isFile()) {

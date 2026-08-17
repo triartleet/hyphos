@@ -80,8 +80,7 @@ const BOUNCE_RE =
 // for 0x80–0x9F. We cover numeric refs (with that remap) and a curated set of the
 // named entities that actually appear in mail. DIVERGENCE: exotic named entities
 // and the no-semicolon legacy forms outside this set are left un-decoded. This
-// only affects html-only messages, so it is scoped narrowly — flagged for the
-// harness.
+// only affects html-only messages, so it is scoped narrowly.
 const CP1252: Record<number, string> = {
   0x80: "€",
   0x82: "‚",
@@ -275,7 +274,7 @@ function splitlines(s: string): string[] {
   return parts;
 }
 
-/** Reference `html_to_text`: strip script/style, turn breaks into newlines, drop
+/** HTML to text: strip script/style, turn breaks into newlines, drop
  *  remaining tags, unescape entities. */
 function htmlToText(markup: string): string {
   // (?is)<(style|script).*?</\1> — DOTALL + IGNORECASE, non-greedy, backreference.
@@ -284,18 +283,16 @@ function htmlToText(markup: string): string {
   return htmlUnescape(m.replace(TAG_RE, " "));
 }
 
-// Python `str.strip()` / `str.lstrip()` whitespace set (chars where `isspace()` is
-// True): differs from JS `\s`/`trim()` in two ways that both bite here — Python
-// strips the C1/ASCII separators \x1c–\x1f and NEL \x85 (JS does not), and Python
-// does NOT strip U+FEFF (the BOM), which JS `trim()` removes. A leading BOM must
-// survive into the record text.
+// The Python whitespace set (see lib/text.ts for the full definition): C1
+// separators and NEL are stripped, the BOM is not — a leading BOM must survive
+// into the record text.
 const PY_WS =
   "\\t\\n\\v\\f\\r\\x1c\\x1d\\x1e\\x1f \\x85\\xa0\\u1680\\u2000-\\u200a\\u2028\\u2029\\u202f\\u205f\\u3000";
 const PY_LSTRIP_RE = new RegExp(`^[${PY_WS}]+`);
 const PY_STRIP_RE = new RegExp(`^[${PY_WS}]+|[${PY_WS}]+$`, "g");
 const pyStrip = (s: string): string => s.replace(PY_STRIP_RE, "");
 
-/** Reference `clean`: signature/quote/URL stripping and whitespace collapse. */
+/** Clean: signature/quote/URL stripping and whitespace collapse. */
 function clean(textIn: string): string {
   let text = textIn.split("\n-- \n")[0] ?? ""; // signature delimiter
   const lines: string[] = [];
@@ -397,7 +394,7 @@ function formatEmailDate(raw: string): string {
   return `${DATE_WD[dt.getUTCDay()]}, ${pad2(day)} ${DATE_MON[mon]} ${year} ${pad2(hh)}:${pad2(mm)}:${pad2(ss)} ${zone}`;
 }
 
-/** Reference `from_addr`: lowercase the From value, take the address between the
+/** From address: lowercase the From value, take the address between the
  *  last "<" and ">". The rstrip(">")-then-strip() order is preserved. */
 function fromAddr(fromValue: string): string {
   const f = fromValue.toLowerCase();
@@ -686,7 +683,7 @@ function getContent(buf: Buffer, node: MimeNode): string {
   return iconv.decode(bytes, charset, { stripBOM: false });
 }
 
-/** Reference `body_text`: prefer plain part; else HTML→text; else "". */
+/** Body text: prefer plain part; else HTML→text; else "". */
 function bodyText(buf: Buffer, root: MimeNode): string {
   const part = getBody(root);
   if (part === null) return "";
@@ -737,10 +734,9 @@ function splitMbox(buf: Buffer): [number, number][] {
 
 // ── Outlook .olm archives (a ZIP of per-message XML files) ──────────────────────
 //
-// Ported from `iter_olm_messages` / `_olm_field`. The reference uses Python's
-// ElementTree; Node has no built-in XML parser and no XML dependency is available,
-// so this is a compact scanner replicating exactly the two operations the
-// reference performs: pre-order search for the first element whose tag NAME
+// Python's ElementTree is the spec; Node has no built-in XML parser and no XML
+// dependency is available, so this is a compact scanner replicating exactly the
+// two required operations: pre-order search for the first element whose tag NAME
 // contains a needle, returning that element's text (else its first non-empty
 // attribute value). It resolves the five predefined XML entities and numeric refs,
 // and reads CDATA literally. DIVERGENCE from ElementTree:
@@ -921,7 +917,7 @@ interface MboxSource {
   path: string;
 }
 
-/** Ported `iter_mboxes`: sent .mbox entries extracted from *.zip archives (in
+/** Iterate mboxes: sent .mbox entries extracted from *.zip archives (in
  *  archive order, per sorted archive), then bare *.mbox files (sorted). */
 function iterMboxes(inbox: string, extract: string): MboxSource[] {
   const out: MboxSource[] = [];
@@ -976,10 +972,10 @@ interface RecordResult {
 }
 
 /**
- * Reference `write_records`: emit one JSONL record per language chunk. A bounce
+ * Emit one JSONL record per language chunk. A bounce
  * notice skips the whole message (counts once). Chunks under 5 words are skipped.
  * Record key order (ts, source, lang, words, text) and compact JSON serialization
- * are fixed by the porting contract; non-ASCII stays literal.
+ * are fixed; non-ASCII stays literal.
  */
 function writeRecords(
   out: string[],
@@ -1022,9 +1018,8 @@ interface MboxMessage {
 }
 
 /**
- * Universal-newline translation (\r\n and lone \r → \n). The reference reads each
- * message through `email.message_from_binary_file`, which wraps the bytes in a
- * `TextIOWrapper` in universal-newlines mode, so the ENTIRE message (headers,
+ * Universal-newline translation (\r\n and lone \r → \n): `email.message_from_binary_file`
+ * reads through a `TextIOWrapper` in universal-newlines mode, so the ENTIRE message (headers,
  * boundaries and bodies) is LF-normalized before parsing. Matching this is what
  * makes the `"\n-- \n"` signature split and per-line quote stripping line up.
  * (Encoded newlines like a quoted-printable "=0D=0A" are ordinary
@@ -1060,8 +1055,8 @@ function readMbox(p: string): MboxMessage[] {
 
 /**
  * Ingest sent e-mail into corpus/email-sent.jsonl. Returns a process exit code.
- * `argv` is accepted for a uniform stage signature but unused, mirroring the
- * reference `main()` which takes no arguments.
+ * `argv` is accepted for a uniform stage signature but unused; the stage takes
+ * no arguments.
  */
 export function runIngestEmail(_argv: string[]): number {
   const corpus = corpusDir();
@@ -1145,7 +1140,7 @@ export function runIngestEmail(_argv: string[]): number {
     }
   }
 
-  // The reference opens the output with mode "w" at the start (truncating even
+  // The output is opened with mode "w" semantics (truncating even
   // when nothing is written); write once here for the same net effect.
   fs.mkdirSync(corpus, { recursive: true });
   fs.writeFileSync(outPath, outChunks.join(""));
